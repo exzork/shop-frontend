@@ -63,6 +63,9 @@ export default function PurchasePage(){
                             <li>We will send you an invoice to your email. Please pay the invoice within 5 minutes to avoid cancellation.</li>
                             <li>You can have maximum 3 times of cancellation for each account, this is to prevent spamming and holding an account.</li>
                             <li>After you have paid the invoice, please wait for the account to be delivered to your email. (Usually within 5 minutes)</li>
+                            <li>Account will be delivered with the login method, both email and login method password is the same. (Example: Kurogames login password and gmail password is the same)</li>
+                            <li>This is a digital product, there is no refund after the account has been delivered except if the account is not as described.</li>
+                            <li>If you have any question, please contact me on discord: exzork</li>
                         </ul>
                     </div>
                 </div>
