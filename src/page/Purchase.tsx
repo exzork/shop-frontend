@@ -37,23 +37,25 @@ export default function PurchasePage(){
                         <div className="text-lg font-semibold">Purchase</div>
                     </div>
                     <div className="px-4 py-2">
-                        <input type="text" placeholder="Your Name" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setTransaction({...transaction, name: e.target.value})}/>
+                        <input type="text" required placeholder="Your Name" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setTransaction({...transaction, name: e.target.value})}/>
                     </div>
                     <div className="px-4 py-2">
-                        <input type="text" placeholder="Your Email" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setTransaction({...transaction, email: e.target.value})}/>
+                        <input type="email" required placeholder="Your Email" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setTransaction({...transaction, email: e.target.value})}/>
                     </div>
                     <div className="px-4 py-2">
                         <textarea placeholder="Note, usually your discord for communication if necessary." className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setTransaction({...transaction, note: e.target.value})}/>
                     </div>
                     <div className="px-4 py-2">
                         <button className="bg-blue-500 text-white p-2 rounded w-full" onClick={async() => {
-                            await createTransaction(transaction)
-                            await Swal.fire({
-                                title: 'Success',
-                                text: 'Transaction has been created, please check your email for the invoice.',
-                                icon: 'success',
-                                confirmButtonText: 'Ok'
-                            })
+                            let tr = await createTransaction(transaction).unwrap()
+                            if(tr){
+                                await Swal.fire({
+                                    title: 'Success',
+                                    text: 'Transaction has been created, please check your email for the invoice.',
+                                    icon: 'success',
+                                    confirmButtonText: 'Ok'
+                                })
+                            }
                         }}>Purchase | ${account?.price}</button>
                     </div>
                     <hr/>
