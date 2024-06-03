@@ -47,6 +47,15 @@ export default function PurchasePage(){
                     </div>
                     <div className="px-4 py-2">
                         <button className="bg-blue-500 text-white p-2 rounded w-full" onClick={async() => {
+                            if(transaction.name === '' || transaction.email === ''){
+                                await Swal.fire({
+                                    title: 'Error',
+                                    text: 'Please fill the form correctly.',
+                                    icon: 'error',
+                                    confirmButtonText: 'Ok'
+                                })
+                                return
+                            }
                             let tr = await createTransaction(transaction).unwrap()
                             if(tr){
                                 await Swal.fire({
