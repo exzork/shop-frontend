@@ -68,3 +68,10 @@ export interface Transaction {
     email: string;
     note: string;
 }
+
+export interface Roller {
+    id: number;
+    name: string;
+    code: string;
+    token: string;
+}

@@ -1,13 +1,17 @@
 import { useState, useEffect } from "react";
-import { useAddAccountMutation, useGetGameQuery } from "../services/api";
+import { useAddAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery } from "../services/api";
 import { Account } from "../services/types";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Select from 'react-select';
 
 export default function AddAccountPage(){
+    const navigate = useNavigate()
     const {data: game} = useGetGameQuery({gameId: parseInt(useParams().gameId!)});
-    const [searchParams, _] = useSearchParams();
+    const [gameId, {}] = useState<number>(parseInt(useParams().gameId!))
+    const [loadAccounts,{data: accounts}] = useLazyGetAccountsQuery();
+    const [searchParams, {}] = useSearchParams();
     const token = searchParams.get("token");
+    const {data: roller} = useGetRollerQuery({token: token ?? ""});
     const [account, setAccount] = useState<Account>({
         game_id: parseInt(useParams().gameId!),
         server_name: "",
@@ -16,7 +20,7 @@ export default function AddAccountPage(){
         code: "",
         description: "",
         price: 0,
-        roller: "",
+        roller: roller?.code ?? "",
         images: "",
         login: "",
         characters: [],
@@ -30,6 +34,10 @@ export default function AddAccountPage(){
     useEffect(() => {
         console.log(account)
     }, [account])
+
+    useEffect(()=>{
+        loadAccounts({gameId: gameId, query: {prefix: roller?.code}})
+    },[roller])
     return (
         <>
             <div className="bg-gray-100 min-h-screen flex flex-col">
@@ -41,7 +49,7 @@ export default function AddAccountPage(){
                 <div className="mx-12 flex flex-1 flex-col lg:flex-row">
                     <div className="bg-white px-2 py-4 flex-1 my-8 min-w-96 max-w-96">
                         <div className="flex justify-between items-center px-4 py-2 border-b">
-                            <div className="text-lg font-semibold">Add Account</div>
+                            <div className="text-lg font-semibold">Add Account | {roller?.name}</div>
                         </div>
                         <div className="px-4 py-2">
                             <Select 
@@ -60,9 +68,6 @@ export default function AddAccountPage(){
                         <div className="px-4 py-2">
                             <input type="checkbox" className="mr-2" onChange={(e) => setAccount({...account!, banner_guarantee: e.target.checked})} id="banner_guarantee"/>
                             <label htmlFor="banner_guarantee">Banner Guarantee</label>
-                        </div>
-                        <div className="px-4 py-2">
-                            <input type="text" placeholder="Roller" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, roller: e.target.value})}/>
                         </div>
                         <div className="px-4 py-2">
                             <textarea placeholder="Description" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, description: e.target.value})}></textarea>
@@ -122,10 +127,56 @@ export default function AddAccountPage(){
                         </div>
                         <div className="px-4 py-2">
                             <button className="bg-gray-900 text-white w-full p-2 rounded" onClick={async() => {
-                                addAccount({account: account, token: token!})
+                                let acc = await addAccount({account: account, token: token!}).unwrap();
+                                if(acc){
+                                    setAccount({
+                                        game_id: parseInt(useParams().gameId!),
+                                        server_name: "",
+                                        level: 1,
+                                        banner_guarantee: false,
+                                        code: "",
+                                        description: "",
+                                        price: 0,
+                                        roller: roller?.code ?? "",
+                                        images: "",
+                                        login: "",
+                                        characters: [],
+                                        weapons: [],
+                                        email: "",
+                                        password: "",
+                                        gender: "F"
+                                    })
+                                    await loadAccounts({gameId: gameId, query: {prefix: roller?.code}}).unwrap();
+                                }
                             }}>Add Account</button>
                         </div>
                     </div>
+                    <div className='lg:ml-12 ml-0 my-8 flex flex-grow md:overflow-y-auto lg:h-[80vh]'>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full mr-2">
+                    {accounts?.map((item, index) => (
+                    <div key={index} className="">
+                        <div className='bg-white p-2 space-y-2'>
+                            <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
+                                <div className="text-lg font-semibold">Server: {game?.servers.find(server => server.value === item.server_name)?.name} | Code: {item.code}</div>
+                                <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
+                                    navigate(`/games/${gameId}/accounts/${item.id}`)
+                                }}>Buy (${item.price})</button>
+                            </div>
+                            <div className='flex flex-col space-x-2 sm:space-y-2'>
+                                <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
+                                <div className='space-y-2 flex-1'>
+                                    <div className="text-lg">Description: {item.description}</div>
+                                    <div className="flex flex-wrap gap-2">{item.characters.map((character, index) => (
+                                        <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ))}
+                </div>
+                </div>
                 </div>
             </div>
         </>
