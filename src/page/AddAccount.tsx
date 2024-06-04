@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { useAddAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery } from "../services/api";
+import { uploadImage, useAddAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery } from "../services/api";
 import { Account } from "../services/types";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Select from 'react-select';
+import { FileUploader } from "react-drag-drop-files";
 
 export default function AddAccountPage(){
     const navigate = useNavigate()
@@ -12,6 +13,7 @@ export default function AddAccountPage(){
     const [searchParams, {}] = useSearchParams();
     const token = searchParams.get("token");
     const {data: roller} = useGetRollerQuery({token: token ?? ""});
+    const [image, setImage] = useState<File | null>(null)
     const [account, setAccount] = useState<Account>({
         game_id: parseInt(useParams().gameId!),
         server_name: "",
@@ -89,7 +91,10 @@ export default function AddAccountPage(){
                             <input type="number" placeholder="Price" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, price: parseInt(e.target.value)})}/>
                         </div>
                         <div className="px-4 py-2">
-                            <input type="text" placeholder="Image" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, images: e.target.value})}/>
+                            <FileUploader multiple={false} handleChange={async(file:File) => {
+                                setImage(file)
+                            }}/>
+                            {image && <img src={URL.createObjectURL(image)} alt="" className="h-40 aspect-video"/>}
                         </div>
                         <div className="px-4 py-2 space-y-2">
                             <div className="flex flex-wrap gap-2">{account?.characters.map((character, index) => (
@@ -127,26 +132,11 @@ export default function AddAccountPage(){
                         </div>
                         <div className="px-4 py-2">
                             <button className="bg-gray-900 text-white w-full p-2 rounded" onClick={async() => {
-                                let acc = await addAccount({account: account, token: token!}).unwrap();
-                                if(acc){
-                                    setAccount({
-                                        game_id: parseInt(useParams().gameId!),
-                                        server_name: "",
-                                        level: 1,
-                                        banner_guarantee: false,
-                                        code: "",
-                                        description: "",
-                                        price: 0,
-                                        roller: roller?.code ?? "",
-                                        images: "",
-                                        login: "",
-                                        characters: [],
-                                        weapons: [],
-                                        email: "",
-                                        password: "",
-                                        gender: "F"
-                                    })
-                                    await loadAccounts({gameId: gameId, query: {prefix: roller?.code}}).unwrap();
+                                let url = await uploadImage(image!, token!);
+                                let acc = await addAccount({account: {...account, images: url}, token: token!}).unwrap();
+                                if(acc.id){
+                                    //reload window
+                                    window.location.reload();
                                 }
                             }}>Add Account</button>
                         </div>
