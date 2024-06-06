@@ -8,6 +8,7 @@ export default function PurchasePage(){
     const [transaction, setTransaction] = useState<Transaction>({account_id: parseInt(useParams().accountId!), name: '', email: '', note: ''})
     const {data: account} = useGetAccountQuery({gameId: parseInt(useParams().gameId!), accountId: parseInt(useParams().accountId!)})
     const {data: game} = useGetGameQuery({gameId: parseInt(useParams().gameId!)});
+    const [loading, setLoading] = useState<boolean>(false)
     const [createTransaction,{}] = useCreateTransactionMutation();
     return (
         <div className="bg-gray-100 min-h-screen flex flex-col">
@@ -46,7 +47,7 @@ export default function PurchasePage(){
                         <textarea placeholder="Note, usually your discord for communication if necessary." className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setTransaction({...transaction, note: e.target.value})}/>
                     </div>
                     <div className="px-4 py-2">
-                        <button className="bg-blue-500 text-white p-2 rounded w-full" onClick={async() => {
+                        <button className="bg-blue-500 text-white p-2 rounded w-full" disabled={loading} onClick={async() => {
                             if(transaction.name === '' || transaction.email === ''){
                                 await Swal.fire({
                                     title: 'Error',
@@ -56,6 +57,7 @@ export default function PurchasePage(){
                                 })
                                 return
                             }
+                            setLoading(true)
                             let tr = await createTransaction(transaction).unwrap()
                             if(tr){
                                 await Swal.fire({
@@ -65,6 +67,7 @@ export default function PurchasePage(){
                                     confirmButtonText: 'Ok'
                                 })
                             }
+                            setLoading(false)
                         }}>Purchase | ${account?.price}</button>
                     </div>
                     <hr/>

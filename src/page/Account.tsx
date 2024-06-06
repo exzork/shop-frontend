@@ -106,7 +106,11 @@ export default function AccountPage(){
                             <div className='flex flex-col space-x-2 sm:space-y-2'>
                                 <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
                                 <div className='space-y-2 flex-1'>
-                                    <div className="text-lg">Description: {item.description}</div>
+                                    <div className="flex space-x-1">
+                                        <div className="font-semibold">Rate {item.banner_guarantee ? 'On' : 'Off'}</div>
+                                        <div className="font-semibold"> | </div>
+                                        <div className="font-semibold">{item.description}</div>
+                                    </div>
                                     <div className="flex flex-wrap gap-2">{item.characters.map((character, index) => (
                                         <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
                                         ))}
