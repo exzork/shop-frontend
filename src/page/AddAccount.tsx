@@ -4,6 +4,7 @@ import { Account } from "../services/types";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Select from 'react-select';
 import { FileUploader } from "react-drag-drop-files";
+import Swal from "sweetalert2";
 
 export default function AddAccountPage(){
     const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function AddAccountPage(){
     const token = searchParams.get("token");
     const {data: roller} = useGetRollerQuery({token: token ?? ""});
     const [image, setImage] = useState<File | null>(null)
+    const [loading, setLoading] = useState<boolean>(false)
     const [account, setAccount] = useState<Account>({
         game_id: parseInt(useParams().gameId!),
         server_name: "",
@@ -131,9 +133,20 @@ export default function AddAccountPage(){
                             <input type="text" placeholder="Password" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, password: e.target.value})}/>
                         </div>
                         <div className="px-4 py-2">
-                            <button className="bg-gray-900 text-white w-full p-2 rounded" onClick={async() => {
+                            <button className="bg-gray-900 text-white w-full p-2 rounded" disabled={loading} onClick={async() => {
+                                if(!image){
+                                    Swal.fire({
+                                        title: 'Error',
+                                        text: 'Please upload an image.',
+                                        icon: 'error',
+                                        confirmButtonText: 'Ok'
+                                    })
+                                    return
+                                }
+                                setLoading(true)
                                 let url = await uploadImage(image!, token!);
                                 let acc = await addAccount({account: {...account, images: url}, token: token!}).unwrap();
+                                setLoading(false)
                                 if(acc.id){
                                     //reload window
                                     window.location.reload();
