@@ -24,7 +24,7 @@ export default function PurchasePage(){
                         <div className="px-4 py-2 space-y-2">
                             <div className="text-lg font-semibold">Login Method : {account?.login}</div>
                             <div className="text-sm">{account?.description}</div>
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-start gap-4 items-center">
                                 {account?.characters.map((character) => (
                                     <div key={character.id} className="relative">
                                         <img src={game?.characters.find((char) => char.value === character.character)?.image} alt="" className="w-24 bg-yellow-300"/>
