@@ -33,6 +33,8 @@ export interface Game {
     image: string;
     servers: GameServer[];
     characters: GameCharacter[];
+    weapons: GameWeapon[];
+
 }
 
 export interface GameServer{
@@ -41,6 +43,12 @@ export interface GameServer{
 }
 
 export interface GameCharacter {
+    value: string;
+    name: string;
+    image: string;
+}
+
+export interface GameWeapon {
     value: string;
     name: string;
     image: string;

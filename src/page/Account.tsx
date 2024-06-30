@@ -2,6 +2,7 @@ import Select from 'react-select';
 import {useGetGameQuery, useLazyGetAccountsQuery } from '../services/api';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { Tooltip } from 'react-tooltip';
 export default function AccountPage(){
     const navigate = useNavigate()
     const [gameId, _] = useState<number>(parseInt(useParams().gameId!))
@@ -59,6 +60,7 @@ export default function AccountPage(){
                 </div>
                 <div className="px-4 pb-2">
                     <div>
+                        <label className='font-semibold'>Characters</label>
                         <div className='flex flex-wrap gap-2 mb-2'>
                             {game?.characters.map((character) => {
                                 let selected = params.characters?.split(',').includes(character.value)
@@ -71,8 +73,8 @@ export default function AccountPage(){
                                             }else{
                                                 setParams({...params, characters: character.value})
                                             }
-                                        }}>
-                                            {multiC && <div className='absolute bottom-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{params.characters?.split(',').filter((c) => c === character.name).length-1}</div>}
+                                        }} data-tooltip-id='tooltip-characters' data-tooltip-content={character.name} data-tooltip-place='top'>
+                                            {multiC && <div className='absolute top-0 left-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{params.characters?.split(',').filter((c) => c === character.name).length-1}</div>}
                                             {selected && (
                                                 <button className='absolute top-0 right-0 bg-black/50 text-white text-xs rounded-full px-2 py-0.5' onClick={(e) => {
                                                     e.stopPropagation()
@@ -81,12 +83,42 @@ export default function AccountPage(){
                                                     setParams({...params, characters: characters?.join(',')})
                                                 }}>-</button>
                                             )}
-                                            <div className='absolute bottom-0 left-0 bg-black/50 text-white text-xs rounded-full px-2 py-0.5'>{character.name}</div>
-                                            <img src={character.image} alt="" className='w-24'/>
+                                            <img src={character.image} alt="" className='w-16'/>
                                         </div>
                                     </>
                                 )
                             })}
+                            <Tooltip id='tooltip-characters' place='top'/>
+                        </div>
+                        <label className='font-semibold'>Weapons</label>
+                        <div className='flex flex-wrap gap-2'>
+                            {game?.weapons.map((weapon) => {
+                                let selected = params.weapons?.split(',').includes(weapon.value)
+                                let multiC = params.weapons?.split(',').filter((c) => c === weapon.name).length > 1
+                                return (
+                                    <>
+                                        <div className={(selected ? 'bg-yellow-300' : 'bg-black/25') + ' relative'} onClick={() => {
+                                            if(params.weapons){
+                                                setParams({...params, weapons: params.weapons + ',' + weapon.value})
+                                            }else{
+                                                setParams({...params, weapons: weapon.value})
+                                            }
+                                        }} data-tooltip-id='tooltip-weapons' data-tooltip-content={weapon.name} data-tooltip-place='top'>
+                                            {multiC && <div className='absolute top-0 left-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{params.weapons?.split(',').filter((c) => c === weapon.name).length-1}</div>}
+                                            {selected && (
+                                                <button className='absolute top-0 right-0 bg-black/50 text-white text-xs rounded-full px-2 py-0.5' onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    let weapons = params.weapons?.split(',')
+                                                    weapons?.splice(weapons?.indexOf(weapon.name),1)
+                                                    setParams({...params, weapons: weapons?.join(',')})
+                                                }}>-</button>
+                                            )}
+                                            <img src={weapon.image} alt="" className='w-16'/>
+                                        </div>
+                                    </>
+                                )
+                            })}
+                            <Tooltip id='tooltip-weapons' place='top'/>
                         </div>
                     </div>
                 </div>
@@ -98,7 +130,7 @@ export default function AccountPage(){
                     <div key={index} className="">
                         <div className='bg-white p-2 space-y-2'>
                             <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
-                                <div className="text-lg font-semibold">Server: {game?.servers.find(server => server.value === item.server_name)?.name} | Code: {item.code}</div>
+                                <div className="text-xs font-semibold">{game?.servers.find(server => server.value === item.server_name)?.name} | {item.code}</div>
                                 <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
                                     navigate(`/games/${gameId}/accounts/${item.id}`)
                                 }}>Buy (${item.price})</button>
@@ -107,12 +139,15 @@ export default function AccountPage(){
                                 <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
                                 <div className='space-y-2 flex-1'>
                                     <div className="flex space-x-1">
-                                        <div className="font-semibold">Rate {item.banner_guarantee ? 'On' : 'Off'}</div>
-                                        <div className="font-semibold"> | </div>
-                                        <div className="font-semibold">{item.description}</div>
+                                        <div className="font-semibold text-xs border-r border-[#CCC] pr-2">Rate {item.banner_guarantee ? 'On' : 'Off'}</div>
+                                        <div className="text-xs w-11/12"> {item.description}</div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">{item.characters.map((character, index) => (
-                                        <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
+                                    <div className="flex flex-wrap gap-2">
+                                        {item.characters.map((character, index) => (
+                                            <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
+                                        ))}
+                                        {item.weapons.map((weapon, index) => (
+                                            <span className='bg-black/10 px-2 py-1 rounded' key={index}>{weapon.weapon}  {weapon.copies > 0 && `(C${weapon.copies})`}</span>
                                         ))}
                                     </div>
                                 </div>

@@ -37,6 +37,13 @@ export const api = createApi({
             },
             invalidatesTags: ["Account"],
         }),
+        deleteAccount: build.mutation<void, {account: Account, token: string}>({
+            query: (params) => ({
+                url: `games/${params.account.game_id}/accounts/${params.account.id}?token=${params.token}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: ["Account"],
+        }),
         getGames: build.query<Game[], void>({
             query: () => `games`,
             transformResponse: (response: Response) => {
@@ -111,4 +118,4 @@ export async function uploadImage(image: File, token: string): Promise<string> {
 }
 
 
-export const { useLazyGetAccountsQuery, useGetAccountsQuery, useLazyGetAccountQuery, useGetAccountQuery, useGetGamesQuery, useGetGameQuery, useAddAccountMutation, useCreateTransactionMutation, useGetRollerQuery } = api;
+export const { useLazyGetAccountsQuery, useGetAccountsQuery, useLazyGetAccountQuery, useGetAccountQuery, useGetGamesQuery, useGetGameQuery, useAddAccountMutation, useCreateTransactionMutation, useGetRollerQuery, useDeleteAccountMutation } = api;
