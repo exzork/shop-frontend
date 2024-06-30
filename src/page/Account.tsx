@@ -12,7 +12,6 @@ export default function AccountPage(){
 
     useEffect(() => {
         loadAccounts({gameId: gameId, query: params})
-        console.log(params)
     }, [params])
 
     useEffect(()=>{

@@ -215,50 +215,50 @@ export default function AddAccountPage(){
                         </div>
                     </div>
                     <div className='lg:ml-12 ml-0 my-8 flex flex-grow md:overflow-y-auto lg:h-[80vh]'>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full mr-2">
-                    {accounts?.map((item, index) => (
-                    <div key={index} className="">
-                        <div className='bg-white p-2 space-y-2'>
-                            <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
-                                <div className="text-xs font-semibold flex-1">{game?.servers.find(server => server.value === item.server_name)?.name} | ${item.price} | {item.code}</div>
-                                <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
-                                    setAccount(item)
-                                }}>
-                                    <CiEdit/>
-                                </button>
-                                <button className="bg-red-500 text-white p-2 rounded ml-1" onClick={async() => {
-                                    //swal confirm
-                                    Swal.fire({
-                                        title: 'Are you sure?',
-                                        text: 'You will not be able to recover this account!',
-                                        icon: 'warning',
-                                        showCancelButton: true,
-                                        confirmButtonText: 'Yes, delete it!',
-                                        cancelButtonText: 'No, keep it'
-                                    }).then(async(result) => {
-                                        if(result.isConfirmed){
-                                            await deleteAccount({account: item, token: token!}).unwrap();
-                                        }
-                                    })
-                                }}>
-                                    <CiTrash/>
-                                </button>
-                            </div>
-                            <div className='flex flex-col space-x-2 sm:space-y-2'>
-                                <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
-                                <div className='space-y-2 flex-1'>
-                                    <div className="text-xs">Description: {item.description}</div>
-                                    <div className="flex flex-wrap gap-2">{item.characters.map((character, index) => (
-                                        <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
-                                        ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full mr-2">
+                            {accounts?.map((item, index) => (
+                            <div key={index} className="">
+                                <div className='bg-white p-2 space-y-2'>
+                                    <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
+                                        <div className="text-xs font-semibold flex-1">{game?.servers.find(server => server.value === item.server_name)?.name} | ${item.price} | {item.code}</div>
+                                        <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
+                                            setAccount(item)
+                                        }}>
+                                            <CiEdit/>
+                                        </button>
+                                        <button className="bg-red-500 text-white p-2 rounded ml-1" onClick={async() => {
+                                            //swal confirm
+                                            Swal.fire({
+                                                title: 'Are you sure?',
+                                                text: 'You will not be able to recover this account!',
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonText: 'Yes, delete it!',
+                                                cancelButtonText: 'No, keep it'
+                                            }).then(async(result) => {
+                                                if(result.isConfirmed){
+                                                    await deleteAccount({account: item, token: token!}).unwrap();
+                                                }
+                                            })
+                                        }}>
+                                            <CiTrash/>
+                                        </button>
+                                    </div>
+                                    <div className='flex flex-col space-x-2 sm:space-y-2'>
+                                        <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
+                                        <div className='space-y-2 flex-1'>
+                                            <div className="text-xs">Description: {item.description}</div>
+                                            <div className="flex flex-wrap gap-2">{item.characters.map((character, index) => (
+                                                <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+                            ))}
                         </div>
                     </div>
-                    ))}
-                </div>
-                </div>
                 </div>
             </div>
         </>

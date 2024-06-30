@@ -31,6 +31,12 @@ export default function PurchasePage(){
                                         {character.copies >= 1 && <div className='absolute bottom-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{character.copies}</div>}
                                     </div>
                                 ))}
+                                {account?.weapons.map((weapon) => (
+                                    <div key={weapon.id} className="relative">
+                                        <img src={game?.weapons.find((weapon) => weapon.value === weapon.name)?.image} alt="" className="w-24 bg-yellow-300"/>
+                                        {weapon.copies >= 1 && <div className='absolute bottom-0 right-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{weapon.copies}</div>}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
