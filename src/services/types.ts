@@ -24,6 +24,7 @@ export interface Account {
     weapons: Weapon[];
     email: string;
     password: string;
+    recovery_email: string;
 }
 
 

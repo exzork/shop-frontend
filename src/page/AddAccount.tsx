@@ -33,7 +33,8 @@ export default function AddAccountPage(){
         weapons: [],
         email: "",
         password: "",
-        gender: "F"
+        gender: "F",
+        recovery_email: ""
     });
     const [addAccount,{}] = useAddAccountMutation();
 
@@ -72,7 +73,8 @@ export default function AddAccountPage(){
                                     weapons: [],
                                     email: "",
                                     password: "",
-                                    gender: "F"
+                                    gender: "F",
+                                    recovery_email: ""
                                 })
                             }}>Clear</button>
                         </div>
@@ -191,6 +193,9 @@ export default function AddAccountPage(){
                         </div>
                         <div className="px-4 py-2">
                             <input type="text" placeholder="Password" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, password: e.target.value})} value={account.password}/>
+                        </div>
+                        <div className="px-4 py-2">
+                            <input type="text" placeholder="Recovery Email" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, recovery_email: e.target.value})} value={account.recovery_email}/>
                         </div>
                         <div className="px-4 py-2">
                             <button className={`bg-gray-900 text-white w-full p-2 rounded ${loading ? `hidden`:`block`}`} disabled={loading} onClick={async() => {
