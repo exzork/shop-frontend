@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { uploadImage, useAddAccountMutation, useDeleteAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery } from "../services/api";
+import { uploadImage, useAddAccountMutation, useDeleteAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountQuery, useLazyGetAccountsQuery } from "../services/api";
 import { Account } from "../services/types";
 import { useParams, useSearchParams } from "react-router-dom";
 import Select from 'react-select';
@@ -12,6 +12,7 @@ export default function AddAccountPage(){
     const {data: game} = useGetGameQuery({gameId: parseInt(useParams().gameId!)});
     const [gameId, {}] = useState<number>(parseInt(useParams().gameId!))
     const [loadAccounts,{data: accounts}] = useLazyGetAccountsQuery();
+    const [loadAccount,{}] = useLazyGetAccountQuery();
     const [deleteAccount,{}] = useDeleteAccountMutation();
     const [searchParams, {}] = useSearchParams();
     const token = searchParams.get("token");
@@ -226,8 +227,9 @@ export default function AddAccountPage(){
                                 <div className='bg-white p-2 space-y-2'>
                                     <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
                                         <div className="text-xs font-semibold flex-1">{game?.servers.find(server => server.value === item.server_name)?.name} | ${item.price} | {item.code}</div>
-                                        <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
-                                            setAccount(item)
+                                        <button className="bg-gray-900 text-white p-2 rounded" onClick={async() => {
+                                            let c = await loadAccount({gameId: gameId, accountId: item.id!}).unwrap()
+                                            setAccount(c)
                                         }}>
                                             <CiEdit/>
                                         </button>
