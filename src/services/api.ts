@@ -16,8 +16,8 @@ export const api = createApi({
             },
             providesTags: ["Account"],
         }),
-        getAccount: build.query<Account, {gameId: number, accountId: number}>({
-            query: (params) => `games/${params.gameId}/accounts/${params.accountId}`,
+        getAccount: build.query<Account, {gameId: number, accountId: number, token?: string}>({
+            query: (params) => `games/${params.gameId}/accounts/${params.accountId}${params.token ? `?token=${params.token}` : ""}`,
             transformResponse: (response: Response) => {
                 if(response.status === "success"){
                     return response.data

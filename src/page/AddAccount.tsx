@@ -228,7 +228,7 @@ export default function AddAccountPage(){
                                     <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
                                         <div className="text-xs font-semibold flex-1">{game?.servers.find(server => server.value === item.server_name)?.name} | ${item.price} | {item.code}</div>
                                         <button className="bg-gray-900 text-white p-2 rounded" onClick={async() => {
-                                            let c = await loadAccount({gameId: gameId, accountId: item.id!}).unwrap()
+                                            let c = await loadAccount({gameId: gameId, accountId: item.id!, token: token!}).unwrap();
                                             setAccount(c)
                                         }}>
                                             <CiEdit/>
