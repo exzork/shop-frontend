@@ -217,7 +217,25 @@ export default function AddAccountPage(){
                                 }
                                 await addAccount({account: {...acc0}, token: token!}).unwrap();
                                 setLoading(false)
-                            }}>Add Account</button>
+                                setAccount({
+                                    game_id: account.game_id,
+                                    server_name: "",
+                                    level: 1,
+                                    banner_guarantee: false,
+                                    code: "",
+                                    description: "",
+                                    price: 0,
+                                    roller: roller?.code ?? "",
+                                    images: "",
+                                    login: "",
+                                    characters: [],
+                                    weapons: [],
+                                    email: "",
+                                    password: "",
+                                    gender: "F",
+                                    recovery_email: ""
+                                })
+                            }}>{account.id ? "Edit" : "Add"} Account</button>
                         </div>
                     </div>
                     <div className='lg:ml-12 ml-0 my-8 flex flex-grow md:overflow-y-auto lg:h-[80vh]'>
