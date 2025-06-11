@@ -38,14 +38,7 @@ function App() {
                   }
                 />
                 <Route path="/login" element={<Login />} />
-                <Route
-                  path="/games/:gameId/accounts/:accountId"
-                  element={
-                    <PrivateRoute>
-                      <PurchasePage />
-                    </PrivateRoute>
-                  }
-                />
+                <Route path="/games/:gameId/accounts/:accountId" element={<PurchasePage />} />
                 <Route
                   path="/change-password"
                   element={

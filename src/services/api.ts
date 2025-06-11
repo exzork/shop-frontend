@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { Account, ApiResult, Game, Response, Roller, Transaction } from "./types";
+import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats } from "./types";
 import axios, { AxiosResponse } from 'axios';
 import { RootState } from '../store';
 
@@ -126,6 +126,14 @@ export const api = createApi({
                 body: data,
             }),
         }),
+        getSalesStats: build.query<SalesStats[], void>({
+            query: () => 'games/sales-stats',
+            transformResponse: (response: Response) => {
+                if(response.status === "success"){
+                    return response.data
+                }
+            },
+        }),
     }),
 });
 
@@ -180,5 +188,6 @@ export const {
     useLoginMutation,
     useChangePasswordMutation,
     useGetIncomeQuery,
-    useUpdateEmailMutation
+    useUpdateEmailMutation,
+    useGetSalesStatsQuery
 } = api;

@@ -320,8 +320,25 @@ export default function AddAccountPage(){
                                             setAccount(c)
                                         }}><CiEdit size={20}/></button>
                                         <button className="bg-red-500 text-white p-2 rounded ml-2" onClick={async() => {
-                                            await deleteAccount({account: item}).unwrap();
-                                            loadAccounts({gameId: gameId, query: {prefix: roller?.code}})
+                                            const result = await Swal.fire({
+                                                title: 'Are you sure?',
+                                                text: "You won't be able to revert this!",
+                                                icon: 'warning',
+                                                showCancelButton: true,
+                                                confirmButtonColor: '#3085d6',
+                                                cancelButtonColor: '#d33',
+                                                confirmButtonText: 'Yes, delete it!'
+                                            });
+                                            
+                                            if (result.isConfirmed) {
+                                                await deleteAccount({account: item}).unwrap();
+                                                loadAccounts({gameId: gameId, query: {prefix: roller?.code}});
+                                                Swal.fire(
+                                                    'Deleted!',
+                                                    'Account has been deleted.',
+                                                    'success'
+                                                );
+                                            }
                                         }}><CiTrash size={20}/></button>
                                     </div>
                                     <div className='flex flex-col space-x-2 sm:space-y-2'>

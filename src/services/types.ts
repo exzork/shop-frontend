@@ -86,3 +86,10 @@ export interface Roller {
     token: string;
     email: string;
 }
+
+export interface SalesStats {
+    game_id: number;
+    game_name: string;
+    total_sold: number;
+    total_revenue: number;
+}
