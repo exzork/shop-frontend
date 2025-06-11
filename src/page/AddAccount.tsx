@@ -1,24 +1,39 @@
 import { useState, useEffect } from "react";
-import { uploadImage, useAddAccountMutation, useDeleteAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountQuery, useLazyGetAccountsQuery } from "../services/api";
+import { uploadImage, useAddAccountMutation, useDeleteAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountQuery, useLazyGetAccountsQuery, useGetIncomeQuery } from "../services/api";
 import { Account } from "../services/types";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Select from 'react-select';
 import { FileUploader } from "react-drag-drop-files";
 import Swal from "sweetalert2";
 import { Tooltip } from "react-tooltip";
 import { CiEdit, CiTrash } from "react-icons/ci";
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
+
+const getStatusColor = (status?: string) => {
+    switch(status?.toLowerCase()) {
+        case 'pending':
+            return 'bg-yellow-500';
+        case 'delivered':
+            return 'bg-green-500';
+        case 'expired':
+            return 'bg-red-500';
+        default:
+            return 'bg-gray-500';
+    }
+};
 
 export default function AddAccountPage(){
     const {data: game} = useGetGameQuery({gameId: parseInt(useParams().gameId!)});
+    const {data: incomeData} = useGetIncomeQuery();
     const [gameId, {}] = useState<number>(parseInt(useParams().gameId!))
     const [loadAccounts,{data: accounts}] = useLazyGetAccountsQuery();
     const [loadAccount,{}] = useLazyGetAccountQuery();
     const [deleteAccount,{}] = useDeleteAccountMutation();
-    const [searchParams, {}] = useSearchParams();
-    const token = searchParams.get("token");
-    const {data: roller} = useGetRollerQuery({token: token ?? ""});
+    const {data: roller} = useGetRollerQuery();
     const [image, setImage] = useState<File | null>(null)
     const [loading, setLoading] = useState<boolean>(false)
+    const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
     const [account, setAccount] = useState<Account>({
         game_id: parseInt(useParams().gameId!),
         server_name: "",
@@ -32,7 +47,7 @@ export default function AddAccountPage(){
         login: "",
         characters: [],
         weapons: [],
-        email: "",
+        email: roller ? `${roller.code.toLowerCase()}.` : "",
         password: "",
         gender: "F",
         recovery_email: ""
@@ -44,15 +59,55 @@ export default function AddAccountPage(){
     }, [account])
 
     useEffect(()=>{
-        loadAccounts({gameId: gameId, query: {prefix: roller?.code}})
-    },[roller])
+        if (isAuthenticated && roller?.code) {
+            loadAccounts({gameId: gameId, query: {prefix: roller.code}})
+        }
+    },[roller, isAuthenticated])
+
+    useEffect(() => {
+        if (roller?.code) {
+            setAccount(prev => ({
+                ...prev,
+                email: `${roller.code.toLowerCase()}.`
+            }));
+        }
+    }, [roller?.code]);
+
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const prefix = roller?.code.toLowerCase() + '.';
+        const value = e.target.value;
+        setAccount(prev => ({
+            ...prev,
+            email: prefix + value
+        }));
+    };
+
+    if (!isAuthenticated) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-xl text-gray-600">Please log in to access this page</div>
+            </div>
+        );
+    }
+
     return (
         <>
             <div className="bg-gray-100 min-h-screen flex flex-col">
-                <div className='bg-gray-900 h-[10vh] flex'>
-                    <div className="text-xl md:text-3xl font-semibold ml-12 text-white my-auto">
-                    ExZork Shop | {game?.name} Account
+                <div className='bg-gray-900 h-[10vh] flex justify-between items-center px-12'>
+                    <div className="text-xl md:text-3xl font-semibold text-white">
+                        ExZork Shop | {game?.name} Account
                     </div>
+                    {incomeData?.data && (
+                        <div className="text-white text-right">
+                            <div className="text-sm text-gray-300">Total Income</div>
+                            <div className="text-xl font-semibold">
+                                ${incomeData.data.find(income => income.game_id === gameId)?.total_income.toFixed(2) ?? '0.00'}
+                            </div>
+                            <div className="text-sm text-gray-300">
+                                {incomeData.data.find(income => income.game_id === gameId)?.total_sold ?? 0} accounts sold
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div className="mx-12 flex flex-1 flex-col lg:flex-row">
                     <div className="bg-white px-2 py-4 flex-1 my-8 min-w-96 max-w-96">
@@ -89,9 +144,6 @@ export default function AddAccountPage(){
                                     }
                                 }}
                             />
-                        </div>
-                        <div className="px-4 py-2">
-                            <input type="text" placeholder="Level" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, level: parseInt(e.target.value)})} value={account.level}/>
                         </div>
                         <div className="px-4 py-2">
                             <input type="checkbox" className="mr-2" onChange={(e) => setAccount({...account!, banner_guarantee: e.target.checked})} id="banner_guarantee" checked={account.banner_guarantee}/>
@@ -190,13 +242,26 @@ export default function AddAccountPage(){
                             <input type="text" placeholder="Login" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, login: e.target.value})} value={account.login}/>
                         </div>
                         <div className="px-4 py-2">
-                            <input type="email" placeholder="Email" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, email: e.target.value})} value={account.email}/>
+                            <div className="relative">
+                                <div className="flex">
+                                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                        {roller?.code.toLowerCase()}.
+                                    </span>
+                                    <input 
+                                        type="text" 
+                                        placeholder="email" 
+                                        className="flex-1 p-2 border border-gray-300 focus:ring-gray-500 focus:border-gray-500" 
+                                        value={account.email.replace(roller?.code.toLowerCase() + '.', '')}
+                                        onChange={handleEmailChange}
+                                    />
+                                    <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                        @exzork.me
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                         <div className="px-4 py-2">
                             <input type="text" placeholder="Password" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, password: e.target.value})} value={account.password}/>
-                        </div>
-                        <div className="px-4 py-2">
-                            <input type="text" placeholder="Recovery Email" className="w-full p-2 border border-gray-300 rounded" onChange={(e) => setAccount({...account!, recovery_email: e.target.value})} value={account.recovery_email}/>
                         </div>
                         <div className="px-4 py-2">
                             <button className={`bg-gray-900 text-white w-full p-2 rounded ${loading ? `hidden`:`block`}`} disabled={loading} onClick={async() => {
@@ -212,10 +277,10 @@ export default function AddAccountPage(){
                                 setLoading(true)
                                 let acc0 = {...account}
                                 if(image){
-                                    let url = await uploadImage(image, token!)
+                                    let url = await uploadImage(image)
                                     acc0.images = url
                                 }
-                                await addAccount({account: {...acc0}, token: token!}).unwrap();
+                                await addAccount({account: acc0}).unwrap();
                                 setLoading(false)
                                 setAccount({
                                     game_id: account.game_id,
@@ -245,36 +310,33 @@ export default function AddAccountPage(){
                                 <div className='bg-white p-2 space-y-2'>
                                     <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
                                         <div className="text-xs font-semibold flex-1">{game?.servers.find(server => server.value === item.server_name)?.name} | ${item.price} | {item.code}</div>
+                                        {item.transaction_status && (
+                                            <div className={`px-2 py-1 rounded text-xs text-white ${getStatusColor(item.transaction_status)}`}>
+                                                {item.transaction_status}
+                                            </div>
+                                        )}
                                         <button className="bg-gray-900 text-white p-2 rounded" onClick={async() => {
-                                            let c = await loadAccount({gameId: gameId, accountId: item.id!, token: token!}).unwrap();
+                                            let c = await loadAccount({gameId: gameId, accountId: item.id!}).unwrap();
                                             setAccount(c)
-                                        }}>
-                                            <CiEdit/>
-                                        </button>
-                                        <button className="bg-red-500 text-white p-2 rounded ml-1" onClick={async() => {
-                                            //swal confirm
-                                            Swal.fire({
-                                                title: 'Are you sure?',
-                                                text: 'You will not be able to recover this account!',
-                                                icon: 'warning',
-                                                showCancelButton: true,
-                                                confirmButtonText: 'Yes, delete it!',
-                                                cancelButtonText: 'No, keep it'
-                                            }).then(async(result) => {
-                                                if(result.isConfirmed){
-                                                    await deleteAccount({account: item, token: token!}).unwrap();
-                                                }
-                                            })
-                                        }}>
-                                            <CiTrash/>
-                                        </button>
+                                        }}><CiEdit size={20}/></button>
+                                        <button className="bg-red-500 text-white p-2 rounded ml-2" onClick={async() => {
+                                            await deleteAccount({account: item}).unwrap();
+                                            loadAccounts({gameId: gameId, query: {prefix: roller?.code}})
+                                        }}><CiTrash size={20}/></button>
                                     </div>
                                     <div className='flex flex-col space-x-2 sm:space-y-2'>
                                         <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
                                         <div className='space-y-2 flex-1'>
-                                            <div className="text-xs">Description: {item.description}</div>
-                                            <div className="flex flex-wrap gap-2">{item.characters.map((character, index) => (
-                                                <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
+                                            <div className="flex space-x-1">
+                                                <div className="font-semibold text-xs border-r border-[#CCC] pr-2">Rate {item.banner_guarantee ? 'On' : 'Off'}</div>
+                                                <div className="text-xs w-11/12"> {item.description}</div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {item.characters.map((character, index) => (
+                                                    <span className='bg-black/10 px-2 py-1 rounded' key={index}>{character.character}  {character.copies > 0 && `(C${character.copies})`}</span>
+                                                ))}
+                                                {item.weapons.map((weapon, index) => (
+                                                    <span className='bg-black/10 px-2 py-1 rounded' key={index}>{weapon.weapon}  {weapon.copies > 0 && `(C${weapon.copies})`}</span>
                                                 ))}
                                             </div>
                                         </div>

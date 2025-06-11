@@ -25,6 +25,7 @@ export interface Account {
     email: string;
     password: string;
     recovery_email: string;
+    transaction_status?: string;
 }
 
 
@@ -83,4 +84,5 @@ export interface Roller {
     name: string;
     code: string;
     token: string;
+    email: string;
 }

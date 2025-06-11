@@ -1,28 +1,67 @@
 import Select from 'react-select';
-import {useGetGameQuery, useLazyGetAccountsQuery } from '../services/api';
-import { useNavigate, useParams } from 'react-router-dom';
+import {useGetGameQuery, useLazyGetAccountsQuery, useGetIncomeQuery} from '../services/api';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Tooltip } from 'react-tooltip';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
+
 export default function AccountPage(){
     const navigate = useNavigate()
-    const [gameId, _] = useState<number>(parseInt(useParams().gameId!))
+    const { gameId } = useParams()
     const [params, setParams] = useState<{[key: string]: string}>({})
     const [loadAccounts,{data: accounts}] = useLazyGetAccountsQuery();
-    const {data: game} = useGetGameQuery({gameId: parseInt(useParams().gameId!)});
+    const {data: game} = useGetGameQuery({gameId: parseInt(gameId!)});
+    const {data: incomeData} = useGetIncomeQuery();
+    const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
     useEffect(() => {
-        loadAccounts({gameId: gameId, query: params})
+        loadAccounts({gameId: parseInt(gameId!), query: params})
     }, [params])
 
     useEffect(()=>{
         document.title = `ExZork Shop | ${game?.name} Accounts`
     },[game])
 
+    const getStatusColor = (status?: string) => {
+        switch(status?.toLowerCase()) {
+            case 'pending':
+                return 'bg-yellow-500';
+            case 'delivered':
+                return 'bg-green-500';
+            case 'failed':
+                return 'bg-red-500';
+            default:
+                return 'bg-gray-500';
+        }
+    };
+
     return (
         <div className="bg-gray-100 min-h-screen flex flex-col">
-            <div className='bg-gray-900 h-[10vh] flex'>
-                <div className="text-xl md:text-3xl font-semibold ml-12 text-white my-auto">
-                ExZork Shop | {game?.name} Accounts
+            <div className='bg-gray-900 h-[10vh] flex justify-between items-center px-12'>
+                <div className="text-xl md:text-3xl font-semibold text-white">
+                    ExZork Shop | {game?.name} Account
+                </div>
+                <div className="flex items-center gap-4">
+                    {isAuthenticated && (
+                        <Link 
+                            to={`/games/${gameId}/add`}
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition-colors duration-200"
+                        >
+                            Add Account
+                        </Link>
+                    )}
+                    {isAuthenticated && incomeData?.data && (
+                        <div className="text-white text-right">
+                            <div className="text-sm text-gray-300">Total Income</div>
+                            <div className="text-xl font-semibold">
+                                ${incomeData.data.find(income => income.game_id === parseInt(gameId!))?.total_income.toFixed(2) ?? '0.00'}
+                            </div>
+                            <div className="text-sm text-gray-300">
+                                {incomeData.data.find(income => income.game_id === parseInt(gameId!))?.total_sold ?? 0} accounts sold
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className="mx-12 flex flex-1 flex-col lg:flex-row">
@@ -130,9 +169,19 @@ export default function AccountPage(){
                         <div className='bg-white p-2 space-y-2'>
                             <div className="flex md:flex-row flex-col justify-between md:items-center items-start">
                                 <div className="text-xs font-semibold">{game?.servers.find(server => server.value === item.server_name)?.name} | {item.code}</div>
-                                <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
-                                    navigate(`/games/${gameId}/accounts/${item.id}`)
-                                }}>Buy (${item.price})</button>
+                                <div className="flex items-center gap-2">
+                                    {isAuthenticated ? (
+                                        item.transaction_status && (
+                                            <div className={`px-2 py-1 rounded text-white text-xs ${getStatusColor(item.transaction_status)}`}>
+                                                {item.transaction_status}
+                                            </div>
+                                        )
+                                    ) : (
+                                        <button className="bg-gray-900 text-white p-2 rounded" onClick={() => {
+                                            navigate(`/games/${gameId}/accounts/${item.id}`)
+                                        }}>Buy (${item.price})</button>
+                                    )}
+                                </div>
                             </div>
                             <div className='flex flex-col space-x-2 sm:space-y-2'>
                                 <img src={item.images} alt="" className="h-40 aspect-video flex-1"/>
