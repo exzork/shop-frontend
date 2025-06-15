@@ -19,6 +19,7 @@ export default function Login() {
       dispatch(setToken(result.token));
       navigate('/');
     } catch (err) {
+      console.log(err);
       setError('Invalid credentials');
     }
   };

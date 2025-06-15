@@ -1,25 +1,39 @@
 import { Middleware, isRejectedWithValue } from "@reduxjs/toolkit"
-import { ErrorResponse } from "./types"
 import Swal from "sweetalert2"
 
 export const rtkQueryErrorLogger: Middleware =
     () => (next) => (action) => {
-        // RTK Query uses `createAsyncThunk` from redux-toolkit under the hood, so we're able to utilize these matchers!
         if (isRejectedWithValue(action)) {
-            console.log(action.payload)
-            //@ts-expect-error
-            const err = action.payload.data as ErrorResponse
-            if(err.message){
-                Swal.fire({
-                    toast: true,
-                    icon: 'error',
-                    title: err.message,
-                    position: 'top-right',
-                    showConfirmButton: false,
-                    timer: 3000,
-                })
+            const payload = action.payload as any;
+            
+            // Ignore 404 errors (used for unauthorized access)
+            if (payload?.status === 404) {
+                return next(action);
             }
-            console.log(err)
+
+            console.log('Error action:', action)
+            
+            // Try to get error message from different possible structures
+            let errorMessage = 'An error occurred'
+            
+            if (payload?.data?.message) {
+                errorMessage = payload.data.message
+            } else if (payload?.message) {
+                errorMessage = payload.message
+            } else if (action.error?.message) {
+                errorMessage = action.error.message
+            }
+
+            console.log('Error message:', errorMessage)
+            
+            Swal.fire({
+                toast: true,
+                icon: 'error',
+                title: errorMessage,
+                position: 'top-right',
+                showConfirmButton: false,
+                timer: 3000,
+            })
         }
         return next(action)
     }
