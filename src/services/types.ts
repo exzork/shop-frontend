@@ -93,3 +93,39 @@ export interface SalesStats {
     total_sold: number;
     total_revenue: number;
 }
+
+export interface BuyerAccess {
+    id: number;
+    buyer_email: string;
+    token: string;
+    created_at: string;
+    expires_at: string;
+}
+
+export interface BuyerEmailAccessRequest {
+    email: string;
+}
+
+export interface BuyerEmailAccessResponse {
+    buyer_email: string;
+    accounts: {
+        account_email: string;
+        game_name: string;
+        server_name: string;
+        account_code: string;
+        purchase_date: string;
+        emails: Array<{
+            id: number;
+            to: string;
+            from: string;
+            subject: string;
+            body: string;
+            is_html: boolean;
+            email_created_at: string;
+            is_read: boolean;
+        }>;
+        email_count: number;
+    }[];
+    total_accounts: number;
+    access_expires_at: string;
+}

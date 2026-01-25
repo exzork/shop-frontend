@@ -1,30 +1,45 @@
 import { useState, useEffect } from "react";
-import { uploadImage, useAddAccountMutation, useDeleteAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountQuery, useLazyGetAccountsQuery, useGetIncomeQuery } from "../services/api";
+import { uploadImage, useAddAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery, useGetIncomeQuery, useDeleteAccountMutation, useLazyGetAccountQuery } from "../services/api";
 import { Account } from "../services/types";
 import { useParams, Navigate } from "react-router-dom";
 import Select from 'react-select';
 import { FileUploader } from "react-drag-drop-files";
 import Swal from "sweetalert2";
 import { Tooltip } from "react-tooltip";
-import { CiEdit, CiTrash } from "react-icons/ci";
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { Image } from '../components/Image';
+import { CiEdit, CiTrash } from "react-icons/ci";
 
-const getStatusColor = (status?: string) => {
-    switch(status?.toLowerCase()) {
-        case 'pending':
-            return 'bg-yellow-500';
-        case 'delivered':
-            return 'bg-green-500';
-        case 'expired':
-            return 'bg-red-500';
-        default:
-            return 'bg-gray-500';
-    }
+const useTheme = () => {
+    const [isDark, setIsDark] = useState(() => {
+        // Check if dark mode is enabled in localStorage
+        const darkMode = localStorage.getItem('darkMode');
+        if (darkMode !== null) {
+            return darkMode === 'true';
+        }
+        // Default to dark mode if no preference is set
+        return true;
+    });
+    
+    useEffect(() => {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    setIsDark(document.documentElement.classList.contains('dark'));
+                }
+            });
+        });
+        
+        observer.observe(document.documentElement, { attributes: true });
+        return () => observer.disconnect();
+    }, []);
+    
+    return isDark;
 };
 
 export default function AddAccountPage(){
+    const isDark = useTheme();
     const params = useParams();
     const gameId = params.gameId ? parseInt(params.gameId) : null;
     
@@ -35,8 +50,6 @@ export default function AddAccountPage(){
     const {data: game, isLoading: isGameLoading} = useGetGameQuery({gameId});
     const {data: incomeData} = useGetIncomeQuery();
     const [loadAccounts,{data: accounts}] = useLazyGetAccountsQuery();
-    const [loadAccount,{}] = useLazyGetAccountQuery();
-    const [deleteAccount,{}] = useDeleteAccountMutation();
     const {data: roller, isLoading: isRollerLoading} = useGetRollerQuery();
     const [image, setImage] = useState<File | null>(null)
     const [loading, setLoading] = useState<boolean>(false)
@@ -51,7 +64,7 @@ export default function AddAccountPage(){
         price: 0,
         roller: "",
         images: "",
-        login: "",
+        login: "Email",
         characters: [],
         weapons: [],
         email: "",
@@ -62,6 +75,8 @@ export default function AddAccountPage(){
     const [addAccount,{}] = useAddAccountMutation();
     const [imagePreview, setImagePreview] = useState<string|null>(null);
     const [filterOpen, setFilterOpen] = useState(true);
+    const [loadAccount,{}] = useLazyGetAccountQuery();
+    const [deleteAccount,{}] = useDeleteAccountMutation();
 
     useEffect(() => {
         console.log(account)
@@ -93,6 +108,138 @@ export default function AddAccountPage(){
         }));
     };
 
+    const handleCharacterClick = (character: string) => {
+        const found = account.characters.find((c) => c.character === character);
+        if (found) {
+            const currentCopies = found.copies || 0;
+            const newCopies = Math.min(6, currentCopies + 1);
+            
+            setAccount({
+                ...account,
+                characters: account.characters.map((c) =>
+                    c.character === character ? { ...c, copies: newCopies } : c
+                ),
+            });
+        } else {
+            setAccount({
+                ...account,
+                characters: [...account.characters, { character, copies: 0, level: 1 }],
+            });
+        }
+    };
+
+    const handleCharacterRemove = (character: string) => {
+        const found = account.characters.find((c) => c.character === character);
+        if (found) {
+            const currentCopies = found.copies ?? 0;  // Use actual value, default to 0
+            const newCopies = currentCopies - 1;
+            
+            if (newCopies < 0) {
+                // Remove the character completely when copies go below 0
+                setAccount({
+                    ...account,
+                    characters: account.characters.filter((c) => c.character !== character),
+                });
+            } else {
+                setAccount({
+                    ...account,
+                    characters: account.characters.map((c) =>
+                        c.character === character ? { ...c, copies: newCopies } : c
+                    ),
+                });
+            }
+        }
+    };
+
+    const handleWeaponClick = (weapon: string) => {
+        const found = account.weapons.find((w) => w.weapon === weapon);
+        if (found) {
+            const currentCopies = found.copies || 0;
+            const newCopies = Math.min(6, currentCopies + 1);
+            
+            setAccount({
+                ...account,
+                weapons: account.weapons.map((w) =>
+                    w.weapon === weapon ? { ...w, copies: newCopies } : w
+                ),
+            });
+        } else {
+            setAccount({
+                ...account,
+                weapons: [...account.weapons, { weapon, copies: 0, level: 1 }],
+            });
+        }
+    };
+
+    const handleWeaponRemove = (weapon: string) => {
+        const found = account.weapons.find((w) => w.weapon === weapon);
+        if (found) {
+            const currentCopies = found.copies ?? 0;  // Use actual value, default to 0
+            const newCopies = currentCopies - 1;
+            
+            if (newCopies < 0) {
+                // Remove the weapon completely when copies go below 0
+                setAccount({
+                    ...account,
+                    weapons: account.weapons.filter((w) => w.weapon !== weapon),
+                });
+            } else {
+                setAccount({
+                    ...account,
+                    weapons: account.weapons.map((w) =>
+                        w.weapon === weapon ? { ...w, copies: newCopies } : w
+                    ),
+                });
+            }
+        }
+    };
+
+    
+
+    const handleEdit = async (accountId: number) => {
+        const result = await loadAccount({gameId, accountId}).unwrap();
+        setAccount(result);
+        setFilterOpen(true);
+    };
+
+    const handleDelete = async (accountId: number) => {
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        });
+
+        if (result.isConfirmed) {
+            await deleteAccount({
+                account: {
+                    game_id: gameId,
+                    id: accountId,
+                    server_name: "",
+                    level: 1,
+                    banner_guarantee: false,
+                    roller: roller?.code || "",
+                    
+                    code: "",
+                    description: "",
+                    price: 0,
+                    images: "",
+                    login: "",
+                    characters: [],
+                    weapons: [],
+                    email: "",
+                    password: "",
+                    gender: "F",
+                    recovery_email: ""
+                }
+            }).unwrap();
+            loadAccounts({gameId: gameId, query: {prefix: roller?.code}});
+        }
+    };
+
     if (!isAuthenticated) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -120,12 +267,12 @@ export default function AddAccountPage(){
     return (
         <>
             <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
-                <div className='bg-gray-900 dark:bg-gray-800 h-[10vh] flex justify-between items-center px-12'>
-                    <div className="text-xl md:text-3xl font-semibold text-white">
+                <div className='bg-gray-900 dark:bg-gray-800 min-h-[10vh] flex flex-col md:flex-row justify-between items-center px-4 md:px-12 py-4'>
+                    <div className="text-xl md:text-3xl font-semibold text-white mb-4 md:mb-0">
                         ExZork Shop | {game?.name} Account
                     </div>
                     {incomeData?.data && (
-                        <div className="text-white text-right">
+                        <div className="text-white text-center md:text-right">
                             <div className="text-sm text-gray-300">Total Income</div>
                             <div className="text-xl font-semibold">
                                 ${incomeData.data.find(income => income.game_id === gameId)?.total_income.toFixed(2) ?? '0.00'}
@@ -136,8 +283,8 @@ export default function AddAccountPage(){
                         </div>
                     )}
                 </div>
-                <div className="mx-12 flex flex-1 flex-col lg:flex-row">
-                    <div className={`bg-white dark:bg-gray-800 py-4 flex-1 my-8 transition-all duration-300 ${filterOpen ? 'min-w-96 max-w-96' : 'w-0 min-w-0 max-w-0 overflow-hidden px-0 py-0'}`}> 
+                <div className="mx-4 md:mx-12 flex flex-1 flex-col lg:flex-row">
+                    <div className={`bg-white dark:bg-gray-800 transition-all duration-300 ${filterOpen ? 'w-full lg:min-w-96 lg:max-w-96 my-4 lg:my-8' : 'w-0 min-w-0 max-w-0 h-0 overflow-hidden px-0 py-0 my-0 opacity-0'}`}> 
                         <div className="flex justify-between items-center px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                             <div className={`text-lg font-semibold text-gray-900 dark:text-gray-100 transition-opacity duration-200 ${filterOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>{account.id ? "Edit" : "Add"} Account | {roller?.name}</div>
                             <button onClick={() => setFilterOpen(!filterOpen)} className="ml-auto bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded p-1 transition-colors">
@@ -161,6 +308,45 @@ export default function AddAccountPage(){
                                 }}
                                 className="text-gray-900 dark:text-gray-100"
                                 classNamePrefix="select"
+                                placeholder="Select server..."
+                                styles={{
+                                    singleValue: (base) => ({
+                                        ...base,
+                                        color: 'inherit'
+                                    }),
+                                    input: (base) => ({
+                                        ...base,
+                                        color: 'inherit'
+                                    }),
+                                    placeholder: (base) => ({
+                                        ...base,
+                                        color: 'inherit'
+                                    }),
+                                    menu: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        color: 'inherit'
+                                    }),
+                                    option: (base, state) => ({
+                                        ...base,
+                                        backgroundColor: state.isFocused 
+                                            ? (isDark ? 'rgb(55, 65, 81)' : 'rgb(243, 244, 246)')
+                                            : 'transparent',
+                                        color: 'inherit',
+                                        ':active': {
+                                            backgroundColor: isDark ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)'
+                                        }
+                                    }),
+                                    multiValue: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(55, 65, 81)' : 'rgb(243, 244, 246)',
+                                        color: 'inherit'
+                                    }),
+                                    multiValueLabel: (base) => ({
+                                        ...base,
+                                        color: 'inherit'
+                                    })
+                                }}
                                 theme={(theme) => ({
                                     ...theme,
                                     colors: {
@@ -169,17 +355,17 @@ export default function AddAccountPage(){
                                         primary75: '#6B7280',
                                         primary50: '#9CA3AF',
                                         primary25: '#D1D5DB',
-                                        neutral0: '#FFFFFF',
-                                        neutral5: '#F3F4F6',
-                                        neutral10: '#E5E7EB',
-                                        neutral20: '#D1D5DB',
+                                        neutral0: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        neutral5: isDark ? '#374151' : '#F3F4F6',
+                                        neutral10: isDark ? '#4B5563' : '#E5E7EB',
+                                        neutral20: isDark ? '#6B7280' : '#D1D5DB',
                                         neutral30: '#9CA3AF',
-                                        neutral40: '#6B7280',
-                                        neutral50: '#4B5563',
-                                        neutral60: '#374151',
-                                        neutral70: '#1F2937',
-                                        neutral80: '#111827',
-                                        neutral90: '#000000',
+                                        neutral40: isDark ? '#D1D5DB' : '#6B7280',
+                                        neutral50: isDark ? '#E5E7EB' : '#4B5563',
+                                        neutral60: isDark ? '#F3F4F6' : '#374151',
+                                        neutral70: isDark ? '#F9FAFB' : '#1F2937',
+                                        neutral80: isDark ? '#FFFFFF' : '#111827',
+                                        neutral90: isDark ? '#FFFFFF' : '#000000',
                                     },
                                 })}
                             />
@@ -191,82 +377,298 @@ export default function AddAccountPage(){
                         <div className="px-4 py-2">
                             <textarea placeholder="Description" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" onChange={(e) => setAccount({...account!, description: e.target.value})} value={account.description}/>
                         </div>
-                        <div className="px-4 py-2 flex space-x-2">
-                            <button className={`${account.gender === "F" ? 'bg-yellow-300 dark:bg-yellow-600' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'} p-2 rounded transition-colors`} onClick={() => {
-                                setAccount({...account!, gender: "F"})}
-                            }>Female</button>
-                            <button className={`${account.gender === "M" ? 'bg-yellow-300 dark:bg-yellow-600' : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100'} p-2 rounded transition-colors`} onClick={() => {
-                                setAccount({...account!, gender: "M"})}}
-                            >Male</button>
-                        </div>
-                        <div className="px-4 py-2 flex items-center space-x-2">
-                            <div className="text-gray-900 dark:text-gray-100">USD</div>
-                            <input type="number" placeholder="Price" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" onChange={(e) => setAccount({...account!, price: parseInt(e.target.value)})} value={account.price}/>
-                        </div>
                         <div className="px-4 py-2">
-                            <FileUploader multiple={false} handleChange={async(file:File) => {
-                                setImage(file)
-                            }}/>
-                            {image && <Image src={URL.createObjectURL(image)} alt="" className="h-40 aspect-video"/>}
+                            <Select 
+                                isSearchable
+                                placeholder="Gender"
+                                name='Gender'
+                                className="w-full text-gray-900 dark:text-gray-100"
+                                classNamePrefix="select"
+                                onChange={(selectedOption) => {
+                                    if(selectedOption){
+                                        setAccount({...account!, gender: selectedOption.value})
+                                    }
+                                }}
+                                value={{label: account.gender === "F" ? "Female" : "Male", value: account.gender}}
+                                options={[{label: 'Female', value: 'F'}, {label: 'Male', value: 'M'}]}
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        borderColor: isDark ? 'rgb(75, 85, 99)' : 'rgb(209, 213, 219)',
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    singleValue: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    input: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    placeholder: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)'
+                                    }),
+                                    menu: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        border: isDark ? '1px solid rgb(75, 85, 99)' : '1px solid rgb(209, 213, 219)',
+                                        zIndex: 9999
+                                    }),
+                                    menuPortal: (base) => ({
+                                        ...base,
+                                        zIndex: 9999
+                                    }),
+                                    option: (base, state) => ({
+                                        ...base,
+                                        backgroundColor: state.isFocused 
+                                            ? (isDark ? 'rgb(55, 65, 81)' : 'rgb(243, 244, 246)')
+                                            : 'transparent',
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)',
+                                        ':active': {
+                                            backgroundColor: isDark ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)'
+                                        }
+                                    }),
+                                    multiValue: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(55, 65, 81)' : 'rgb(243, 244, 246)',
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    multiValueLabel: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    })
+                                }}
+                                menuPortalTarget={document.body}
+                                theme={(theme) => ({
+                                    ...theme,
+                                    colors: {
+                                        ...theme.colors,
+                                        primary: '#4B5563',
+                                        primary75: '#6B7280',
+                                        primary50: '#9CA3AF',
+                                        primary25: '#D1D5DB',
+                                        neutral0: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        neutral5: isDark ? '#374151' : '#F3F4F6',
+                                        neutral10: isDark ? '#4B5563' : '#E5E7EB',
+                                        neutral20: isDark ? '#6B7280' : '#D1D5DB',
+                                        neutral30: '#9CA3AF',
+                                        neutral40: isDark ? '#D1D5DB' : '#6B7280',
+                                        neutral50: isDark ? '#E5E7EB' : '#4B5563',
+                                        neutral60: isDark ? '#F3F4F6' : '#374151',
+                                        neutral70: isDark ? '#F9FAFB' : '#1F2937',
+                                        neutral80: isDark ? '#FFFFFF' : '#111827',
+                                        neutral90: isDark ? '#FFFFFF' : '#000000',
+                                    },
+                                })}
+                            />
                         </div>
                         <div className="px-4 py-2">
                             <label className='font-semibold text-gray-900 dark:text-gray-100'>Characters</label>
-                            <div className='flex flex-wrap gap-2 mb-2'>
+                            <div className='grid grid-cols-4 gap-1 sm:gap-2 mb-2'>
                                 {game?.characters.map((character) => {
-                                    let selected = account.characters.some((c) => c.character === character.value)
-                                    let multiC = account.characters.filter((c) => c.character === character.value).length > 1
+                                    const found = account.characters.find((c) => c.character === character.value);
+                                    const selected = !!found;
+                                    const copies = found?.copies || 0;
+                                    
                                     return (
-                                        <>
-                                            <div className={(selected ? 'bg-yellow-300 dark:bg-yellow-600' : 'bg-black/25 dark:bg-white/25') + ' relative'} onClick={() => {
-                                                if(account.characters.some((c) => c.character === character.value)){
-                                                    setAccount({...account!, characters: account.characters.filter((c) => c.character !== character.value)})
-                                                }else{
-                                                    setAccount({...account!, characters: [...account.characters, {character: character.value, copies: 0, level: 1}]})
-                                                }
-                                            }} data-tooltip-id='tooltip-characters' data-tooltip-content={character.name} data-tooltip-place='top'>
-                                                {multiC && <div className='absolute top-0 left-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{account.characters.filter((c) => c.character === character.value).length-1}</div>}
-                                                {selected && (
-                                                    <button className='absolute top-0 right-0 bg-black/50 dark:bg-white/50 text-white text-xs rounded-full px-2 py-0.5' onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setAccount({...account!, characters: account.characters.filter((c) => c.character !== character.value)})
-                                                    }}>-</button>
-                                                )}
-                                                <Image src={character.image} alt="" className='w-16'/>
-                                            </div>
-                                        </>
-                                    )
+                                        <div
+                                            key={character.value}
+                                            className={(selected ? 'bg-yellow-300 dark:bg-yellow-600' : 'bg-black/25 dark:bg-white/25') + ' relative flex items-center justify-center aspect-square rounded'}
+                                            data-tooltip-id="tooltip-characters"
+                                            data-tooltip-content={character.name}
+                                            data-tooltip-place="top"
+                                        >
+                                            <Image src={character.image} alt="" className="w-full h-full p-1 object-contain" onClick={() => handleCharacterClick(character.value)} />
+                                            {selected && (
+                                                <>
+                                                    <button
+                                                        className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-sm focus:outline-none flex items-center justify-center transition-colors shadow-lg"
+                                                        style={{
+                                                            width: '1.5rem',
+                                                            height: '1.5rem',
+                                                            fontSize: 'clamp(0.6rem, 3vw, 0.9rem)'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleCharacterRemove(character.value);
+                                                        }}
+                                                    >-</button>
+                                                    <button
+                                                        className="absolute top-1 right-1 bg-green-500 hover:bg-green-600 text-white font-bold rounded-sm focus:outline-none flex items-center justify-center transition-colors shadow-lg"
+                                                        style={{
+                                                            width: '1.5rem',
+                                                            height: '1.5rem',
+                                                            fontSize: 'clamp(0.6rem, 3vw, 0.9rem)'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleCharacterClick(character.value);
+                                                        }}
+                                                    >+</button>
+                                                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black/80 dark:bg-white/90 rounded-md px-1 py-0.5 shadow-lg">
+                                                        <span className="font-bold text-white dark:text-gray-900 select-none text-center" style={{
+                                                            fontSize: 'clamp(0.5rem, 2.5vw, 0.75rem)'
+                                                        }}>
+                                                            C{copies}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
                                 })}
-                                <Tooltip id='tooltip-characters' place='top'/>
+                                <Tooltip id="tooltip-characters" place="top" />
                             </div>
                             <label className='font-semibold text-gray-900 dark:text-gray-100'>Weapons</label>
-                            <div className='flex flex-wrap gap-2'>
+                            <div className='grid grid-cols-4 gap-1 sm:gap-2'>
                                 {game?.weapons.map((weapon) => {
-                                    let selected = account.weapons.some((w) => w.weapon === weapon.value)
-                                    let multiC = account.weapons.filter((w) => w.weapon === weapon.value).length > 1
+                                    const found = account.weapons.find((w) => w.weapon === weapon.value);
+                                    const selected = !!found;
+                                    const copies = found?.copies || 0;
+                                    
                                     return (
-                                        <>
-                                            <div className={(selected ? 'bg-yellow-300 dark:bg-yellow-600' : 'bg-black/25 dark:bg-white/25') + ' relative'} onClick={() => {
-                                                if(account.weapons.some((w) => w.weapon === weapon.value)){
-                                                    setAccount({...account!, weapons: account.weapons.filter((w) => w.weapon !== weapon.value)})
-                                                }else{
-                                                    setAccount({...account!, weapons: [...account.weapons, {weapon: weapon.value, copies: 0, level: 1}]})
-                                                }
-                                            }} data-tooltip-id='tooltip-weapons' data-tooltip-content={weapon.name} data-tooltip-place='top'>
-                                                {multiC && <div className='absolute top-0 left-0 bg-red-500 text-white text-xs rounded-full px-2 py-0.5'>C{account.weapons.filter((w) => w.weapon === weapon.value).length-1}</div>}
-                                                {selected && (
-                                                    <button className='absolute top-0 right-0 bg-black/50 dark:bg-white/50 text-white text-xs rounded-full px-2 py-0.5' onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setAccount({...account!, weapons: account.weapons.filter((w) => w.weapon !== weapon.value)})
-                                                    }}>-</button>
-                                                )}
-                                                <Image src={weapon.image} alt="" className='w-16'/>
-                                            </div>
-                                        </>
-                                    )
+                                        <div
+                                            key={weapon.value}
+                                            className={(selected ? 'bg-yellow-300 dark:bg-yellow-600' : 'bg-black/25 dark:bg-white/25') + ' relative flex items-center justify-center aspect-square rounded'}
+                                            data-tooltip-id="tooltip-weapons"
+                                            data-tooltip-content={weapon.name}
+                                            data-tooltip-place="top"
+                                        >
+                                            <Image src={weapon.image} alt="" className="w-full h-full p-1 object-contain" onClick={() => handleWeaponClick(weapon.value)} />
+                                            {selected && (
+                                                <>
+                                                    <button
+                                                        className="absolute top-1 left-1 bg-red-500 hover:bg-red-600 text-white font-bold rounded-sm focus:outline-none flex items-center justify-center transition-colors shadow-lg"
+                                                        style={{
+                                                            width: '1.5rem',
+                                                            height: '1.5rem',
+                                                            fontSize: 'clamp(0.6rem, 3vw, 0.9rem)'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleWeaponRemove(weapon.value);
+                                                        }}
+                                                    >-</button>
+                                                    <button
+                                                        className="absolute top-1 right-1 bg-green-500 hover:bg-green-600 text-white font-bold rounded-sm focus:outline-none flex items-center justify-center transition-colors shadow-lg"
+                                                        style={{
+                                                            width: '1.5rem',
+                                                            height: '1.5rem',
+                                                            fontSize: 'clamp(0.6rem, 3vw, 0.9rem)'
+                                                        }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleWeaponClick(weapon.value);
+                                                        }}
+                                                    >+</button>
+                                                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-black/80 dark:bg-white/90 rounded-md px-1 py-0.5 shadow-lg">
+                                                        <span className="font-bold text-white dark:text-gray-900 select-none text-center" style={{
+                                                            fontSize: 'clamp(0.5rem, 2.5vw, 0.75rem)'
+                                                        }}>
+                                                            C{copies}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    );
                                 })}
-                                <Tooltip id='tooltip-weapons' place='top'/>
+                                <Tooltip id="tooltip-weapons" place="top" />
                             </div>
                         </div>
+                        <div className="px-4 py-2">
+                            <Select 
+                                isSearchable
+                                placeholder="Login Method"
+                                name='LoginMethod'
+                                className="w-full text-gray-900 dark:text-gray-100"
+                                classNamePrefix="select"
+                                onChange={(selectedOption) => {
+                                    if(selectedOption){
+                                        setAccount({...account!, login: selectedOption.value})
+                                    }
+                                }}
+                                value={{label: account.login, value: account.login}}
+                                options={[
+                                    {label: 'Email', value: 'Email'}, 
+                                    {label: 'Username', value: 'Username'}, 
+                                    {label: 'Google', value: 'Google'}
+                                ]}
+                                styles={{
+                                    control: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        borderColor: isDark ? 'rgb(75, 85, 99)' : 'rgb(209, 213, 219)',
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    singleValue: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    input: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)'
+                                    }),
+                                    placeholder: (base) => ({
+                                        ...base,
+                                        color: isDark ? 'rgb(156, 163, 175)' : 'rgb(107, 114, 128)'
+                                    }),
+                                    menu: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        border: isDark ? '1px solid rgb(75, 85, 99)' : '1px solid rgb(209, 213, 219)',
+                                        zIndex: 9999
+                                    }),
+                                    menuPortal: (base) => ({
+                                        ...base,
+                                        zIndex: 9999
+                                    }),
+                                    option: (base, state) => ({
+                                        ...base,
+                                        backgroundColor: state.isFocused 
+                                            ? (isDark ? 'rgb(55, 65, 81)' : 'rgb(243, 244, 246)')
+                                            : (isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)'),
+                                        color: isDark ? 'rgb(243, 244, 246)' : 'rgb(17, 24, 39)',
+                                        ':active': {
+                                            backgroundColor: isDark ? 'rgb(75, 85, 99)' : 'rgb(229, 231, 235)'
+                                        }
+                                    }),
+                                    multiValue: (base) => ({
+                                        ...base,
+                                        backgroundColor: isDark ? 'rgb(55, 65, 81)' : 'rgb(243, 244, 246)',
+                                        color: 'inherit'
+                                    }),
+                                    multiValueLabel: (base) => ({
+                                        ...base,
+                                        color: 'inherit'
+                                    })
+                                }}
+                                theme={(theme) => ({
+                                    ...theme,
+                                    colors: {
+                                        ...theme.colors,
+                                        primary: '#4B5563',
+                                        primary75: '#6B7280',
+                                        primary50: '#9CA3AF',
+                                        primary25: '#D1D5DB',
+                                        neutral0: isDark ? 'rgb(31, 41, 55)' : 'rgb(255, 255, 255)',
+                                        neutral5: isDark ? '#374151' : '#F3F4F6',
+                                        neutral10: isDark ? '#4B5563' : '#E5E7EB',
+                                        neutral20: isDark ? '#6B7280' : '#D1D5DB',
+                                        neutral30: '#9CA3AF',
+                                        neutral40: isDark ? '#D1D5DB' : '#6B7280',
+                                        neutral50: isDark ? '#E5E7EB' : '#4B5563',
+                                        neutral60: isDark ? '#F3F4F6' : '#374151',
+                                        neutral70: isDark ? '#F9FAFB' : '#1F2937',
+                                        neutral80: isDark ? '#FFFFFF' : '#111827',
+                                        neutral90: isDark ? '#FFFFFF' : '#000000',
+                                    },
+                                })}
+                            />
+                        </div>
+                        {account.login === 'Email' && (
                         <div className="px-4 py-2">
                             <div className="relative">
                                 <div className="flex">
@@ -293,8 +695,30 @@ export default function AddAccountPage(){
                                 </div>
                             </div>
                         </div>
+                        )}
+                        {account.login !== 'Email' && (
+                        <div className="px-4 py-2">
+                            <input 
+                                type="text" 
+                                placeholder={account.login === 'Username' ? 'Username' : account.login === 'Google' ? 'Google Account' : 'Login'}
+                                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" 
+                                onChange={(e) => setAccount({...account!, email: e.target.value})} 
+                                value={account.email}
+                            />
+                        </div>
+                        )}
                         <div className="px-4 py-2">
                             <input type="text" placeholder="Password" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" onChange={(e) => setAccount({...account!, password: e.target.value})} value={account.password}/>
+                        </div>
+                        <div className="px-4 py-2 flex items-center space-x-2">
+                            <div className="text-gray-900 dark:text-gray-100">USD</div>
+                            <input type="number" placeholder="Price" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" onChange={(e) => setAccount({...account!, price: parseInt(e.target.value)})} value={account.price}/>
+                        </div>
+                        <div className="px-4 py-2">
+                            <FileUploader multiple={false} handleChange={async(file:File) => {
+                                setImage(file)
+                            }}/>
+                            {image && <Image src={URL.createObjectURL(image)} alt="" className="h-40 aspect-video"/>}
                         </div>
                         <div className="px-4 py-2">
                             <button className={`bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white w-full p-2 rounded transition-colors ${loading ? `hidden`:`block`}`} disabled={loading} onClick={async() => {
@@ -325,7 +749,7 @@ export default function AddAccountPage(){
                                     price: 0,
                                     roller: roller?.code ?? "",
                                     images: "",
-                                    login: "",
+                                    login: "Email",
                                     characters: [],
                                     weapons: [],
                                     email: "",
@@ -338,7 +762,7 @@ export default function AddAccountPage(){
                         </>
                         )}
                     </div>
-                    <div className='lg:ml-12 ml-0 my-8 flex flex-grow md:overflow-y-auto lg:h-[80vh] w-full flex-col'>
+                    <div className='lg:ml-12 ml-0 my-4 lg:my-8 flex flex-grow md:overflow-y-auto lg:h-[80vh] w-full flex-col'>
                         {!filterOpen && (
                             <div className="flex justify-start mb-4 w-full">
                                 <button onClick={() => setFilterOpen(true)} className="bg-gray-900 dark:bg-gray-800 text-white px-6 py-2 rounded-md font-semibold shadow hover:bg-gray-800 dark:hover:bg-gray-700 transition-colors duration-200">
@@ -346,10 +770,10 @@ export default function AddAccountPage(){
                                 </button>
                             </div>
                         )}
-                        <div className="w-full bg-gray-50 dark:bg-gray-800 rounded-xl p-6 min-h-[400px] flex items-start">
-                            <div className="grid grid-cols-1 md:grid-cols-4 xl:grid-cols-6 gap-8 w-full">
+                        <div className="w-full bg-gray-50 dark:bg-gray-800 rounded-xl p-3 sm:p-6 min-h-[400px] flex items-start">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 w-full">
                                 {accounts?.map((item, index) => (
-                                    <div key={index} className="transform transition-all duration-200 hover:scale-[1.02] col-span-2">
+                                    <div key={index} className="transform transition-all duration-200 hover:scale-[1.02]">
                                         <div className='bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 p-4 flex flex-col h-full'>
                                             <div className="relative mb-3">
                                                 <div className="w-full aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-600 rounded-md overflow-hidden cursor-pointer" onClick={() => setImagePreview(item.images)}>
@@ -363,6 +787,14 @@ export default function AddAccountPage(){
                                                         Rate On
                                                     </div>
                                                 )}
+                                                <div className="absolute top-2 right-2 flex space-x-2">
+                                                    <button onClick={() => handleEdit(item.id!)} className="bg-blue-500 text-white p-1 rounded hover:bg-blue-600 transition-colors">
+                                                        <CiEdit className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(item.id!)} className="bg-red-500 text-white p-1 rounded hover:bg-red-600 transition-colors">
+                                                        <CiTrash className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
                                             <div className='space-y-3 flex-1 flex flex-col'>
                                                 <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{item.code}</div>
@@ -372,12 +804,12 @@ export default function AddAccountPage(){
                                                 <div className="flex flex-wrap gap-2 mt-auto">
                                                     {item.characters.map((character, index) => (
                                                         <span className='bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs font-medium' key={index}>
-                                                            {character.character}{character.copies > 0 && ` (C${character.copies})`}
+                                                            {character.character}{character.copies > 0 && ` (${character.copies})`}
                                                         </span>
                                                     ))}
                                                     {item.weapons.map((weapon, index) => (
                                                         <span className='bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-2 py-1 rounded text-xs font-medium' key={index}>
-                                                            {weapon.weapon}{weapon.copies > 0 && ` (C${weapon.copies})`}
+                                                            {weapon.weapon}{weapon.copies > 0 && ` (${weapon.copies})`}
                                                         </span>
                                                     ))}
                                                 </div>

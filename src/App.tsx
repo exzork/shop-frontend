@@ -5,6 +5,10 @@ import Login from './pages/Login';
 import Home from './page/Home';
 import Email from './page/Email';
 import SubRollerEmail from './page/SubRollerEmail';
+import BuyerEmailAccess from './pages/BuyerEmailAccess';
+import UnsubscribePage from './pages/UnsubscribePage';
+import NotificationsPage from './pages/NotificationsPage';
+import TestUnsubscribePage from './pages/TestUnsubscribePage';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { useSelector } from 'react-redux';
@@ -12,7 +16,7 @@ import { RootState } from './store';
 import PurchasePage from './page/Purchase';
 import ChangePassword from './components/ChangePassword';
 import Navigation from './components/Navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useGetRollerQuery, useGetEmailsQuery } from './services/api';
 import Pusher from 'pusher-js';
 import EmailViewer from './page/EmailViewer';
@@ -36,6 +40,7 @@ interface Email {
 function App() {
   const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const isEmailViewer = window.location.pathname.includes('/email-viewer');
+  const notificationSound = useRef<HTMLAudioElement | null>(null);
   
   const { data: roller } = useGetRollerQuery(undefined, { skip: isEmailViewer });
   const {
@@ -50,6 +55,16 @@ function App() {
   }));
   const unreadCount = emails.filter(email => !email.is_read).length;
 
+  // Initialize notification sound
+  useEffect(() => {
+    if (!isEmailViewer) {
+      const audio = new Audio('/notification.mp3');
+      audio.preload = 'auto';
+      audio.volume = 0.5; // Set volume to 50%
+      notificationSound.current = audio;
+    }
+  }, [isEmailViewer]);
+
   // Setup Pusher connection
   useEffect(() => {
     if (!isAuthenticated || !roller?.code || isEmailViewer) return;
@@ -63,6 +78,14 @@ function App() {
     const channel = pusher.subscribe(channelName);
 
     channel.bind('new-email', () => {
+      if (notificationSound.current) {
+        // Reset the audio to the beginning
+        notificationSound.current.currentTime = 0;
+        // Play the sound
+        notificationSound.current.play().catch(error => {
+          console.log('Error playing notification sound:', error);
+        });
+      }
       refetchEmails();
     });
 
@@ -138,6 +161,12 @@ function App() {
                   }
                 />
                 <Route path="/email-viewer" element={<EmailViewer />} />
+                <Route path="/email-viewer/:emailId" element={<EmailViewer />} />
+                <Route path="/buyer-emails" element={<BuyerEmailAccess />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                <Route path="/unsubscribe-single" element={<UnsubscribePage />} />
+                <Route path="/test-unsubscribe" element={<TestUnsubscribePage />} />
               </Routes>
             </div>
           </main>

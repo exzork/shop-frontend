@@ -161,6 +161,22 @@ export default function SubRollerEmailPage() {
         return htmlTagRegex.test(content);
     };
 
+    // Utility to check if email body contains color styling
+    const emailBodyHasColor = (body: string) => {
+        return /style\s*=\s*"[^"]*color\s*:/i.test(body) || /class\s*=\s*"[^"]*text-\w+/i.test(body);
+    };
+
+    // Utility to wrap email body with theme-aware color if needed
+    const getThemedEmailBody = (body: string) => {
+        const cleanBody = body.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+        if (emailBodyHasColor(cleanBody)) {
+            return cleanBody;
+        }
+        const isDark = document.documentElement.classList.contains('dark');
+        const color = isDark ? '#e5e7eb' : '#111827';
+        return `<div style=\"color: ${color};\">${cleanBody}</div>`;
+    };
+
     const totalPages = emailData?.data?.total ? Math.ceil(emailData.data.total / emailData.data.limit) : 1;
 
     return (
@@ -327,7 +343,7 @@ export default function SubRollerEmailPage() {
                         </div>
 
                         {/* Email Content */}
-                        <div className="flex-1 p-6 overflow-y-auto bg-white">
+                        <div className="flex-1 p-6 overflow-y-auto bg-white dark:bg-gray-800">
                             {isEmailLoading ? (
                                 <div className="flex items-center justify-center h-full text-gray-500">Loading...</div>
                             ) : selectedEmail ? (
@@ -343,9 +359,9 @@ export default function SubRollerEmailPage() {
                                     <div className="prose max-w-none">
                                         {isHtmlContent(selectedEmail.body) ? (
                                             <div 
-                                                className="prose max-w-none"
+                                                className="prose max-w-none dark:prose-invert prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-a:text-blue-600 dark:prose-a:text-blue-400"
                                                 dangerouslySetInnerHTML={{ 
-                                                    __html: selectedEmail.body
+                                                    __html: getThemedEmailBody(selectedEmail.body)
                                                 }} 
                                             />
                                         ) : (

@@ -1,0 +1,28 @@
+{
+  "name": "Exzork Shop - Account Notifications",
+  "short_name": "Exzork Shop",
+  "description": "Get notified when perfect game accounts become available",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "notification": {
+    "icon": "icon-192x192.png",
+    "badge": "badge-72x72.png"
+  }
+} 

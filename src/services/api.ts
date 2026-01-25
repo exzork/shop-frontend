@@ -1,8 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats } from "./types";
+import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats, BuyerEmailAccessRequest, BuyerEmailAccessResponse } from "./types";
 import axios, { AxiosResponse } from 'axios';
 import { RootState } from '../store';
-import { store } from '../store';
 
 // List of protected endpoints that require authentication
 const PROTECTED_ENDPOINTS = [
@@ -42,11 +41,15 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
     
     // Check if the endpoint requires authentication
     const url = typeof args === 'string' ? args : args.url;
+    
     const requiresAuth = PROTECTED_ENDPOINTS.some(endpoint => 
         url.includes(endpoint) && !url.includes('roller/login')
     );
     
-    if (requiresAuth && !isAuthenticated) {
+    // Buyer endpoints should not require authentication
+    const isBuyerEndpoint = url.includes('buyer/') || url.includes('buyer-notifications/');
+    
+    if (requiresAuth && !isAuthenticated && !isBuyerEndpoint) {
         // Return a silent error that won't trigger the error middleware
         return {
             error: {
@@ -62,7 +65,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 export const api = createApi({
     reducerPath: "api",
     baseQuery: customBaseQuery,
-    tagTypes: ["Account","Game","Email","SubRoller"],
+    tagTypes: ["Account","Game","Email","SubRoller","NotificationSubscription"],
     endpoints: (build) => ({
         login: build.mutation<{token: string}, {code: string, password: string}>({
             query: (credentials) => ({
@@ -358,6 +361,278 @@ export const api = createApi({
             }),
             providesTags: ['SubRoller'],
         }),
+        requestBuyerEmailAccess: build.mutation<{
+            message: string;
+            status: string;
+        }, BuyerEmailAccessRequest>({
+            query: (data) => ({
+                url: 'buyer/request-email-access',
+                method: 'POST',
+                body: data,
+            }),
+        }),
+        getBuyerEmails: build.query<{
+            data: BuyerEmailAccessResponse;
+            message: string;
+            status: string;
+        }, { token: string }>({
+            query: ({ token }) => `buyer/emails?token=${token}`,
+        }),
+        
+        // Buyer Notification Endpoints (FCM)
+        registerFCMToken: build.mutation<{
+            success: boolean;
+            message: string;
+        }, { fcm_token: string; device_name?: string }>({
+            query: (data) => ({
+                url: '/buyer-notifications/fcm-tokens',
+                method: 'POST',
+                body: data,
+            }),
+        }),
+        
+        createNotificationSubscription: build.mutation<{
+            success: boolean;
+            data: any;
+            message: string;
+        }, {
+            fcm_token: string;
+            game_id: number;
+            server_name?: string;
+            max_price?: number;
+            characters?: Array<{
+                character: string;
+                min_copies: number;
+                min_level: number;
+            }>;
+            weapons?: Array<{
+                weapon: string;
+                min_level: number;
+            }>;
+        }>({
+            query: (data) => ({
+                url: '/buyer-notifications/subscriptions',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
+        
+        getNotificationSubscriptions: build.query<{
+            success: boolean;
+            data: Array<{
+                id: number;
+                game_id: number;
+                game: { name: string };
+                server_name: string;
+                max_price: number;
+                characters: Array<{
+                    character: string;
+                    min_copies: number;
+                    min_level: number;
+                }>;
+                weapons: Array<{
+                    weapon: string;
+                    min_level: number;
+                }>;
+                is_active: boolean;
+                created_at: string;
+            }>;
+            message: string;
+        }, { fcm_token: string }>({
+            query: ({ fcm_token }) => `/buyer-notifications/subscriptions?fcm_token=${encodeURIComponent(fcm_token)}`,
+            providesTags: ['NotificationSubscription'],
+        }),
+        
+        updateNotificationSubscription: build.mutation<{
+            success: boolean;
+            data: any;
+            message: string;
+        }, {
+            id: number;
+            fcm_token: string;
+            game_id: number;
+            server_name?: string;
+            max_price?: number;
+            characters?: Array<{
+                character: string;
+                min_copies: number;
+                min_level: number;
+            }>;
+            weapons?: Array<{
+                weapon: string;
+                min_level: number;
+            }>;
+            is_active?: boolean;
+        }>({
+            query: ({ id, ...data }) => ({
+                url: `/buyer-notifications/subscriptions/${id}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
+        
+        deleteNotificationSubscription: build.mutation<{
+            success: boolean;
+            message: string;
+        }, { id: number; fcm_token: string }>({
+            query: ({ id, fcm_token }) => ({
+                url: `/buyer-notifications/subscriptions/${id}?fcm_token=${encodeURIComponent(fcm_token)}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
+        
+        // Buyer Notification Endpoints (Email-based)
+        createEmailNotificationSubscription: build.mutation<{
+            success: boolean;
+            data: any;
+            message: string;
+        }, {
+            email: string;
+            game_id: number;
+            server_name?: string;
+            gender?: string;
+            max_price?: number;
+            characters?: Array<{
+                character: string;
+                min_copies: number;
+            }>;
+            weapons?: Array<{
+                weapon: string;
+                min_copies: number;
+            }>;
+        }>({
+            query: (data) => ({
+                url: '/buyer-notifications/subscriptions',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
+        
+        getEmailNotificationSubscriptions: build.query<{
+            success: boolean;
+            data: Array<{
+                id: number;
+                game_id: number;
+                game: { name: string };
+                server_name: string;
+                gender: string;
+                max_price: number;
+                characters: Array<{
+                    character: string;
+                    min_copies: number;
+                }>;
+                weapons: Array<{
+                    weapon: string;
+                    min_copies: number;
+                }>;
+                is_active: boolean;
+                created_at: string;
+                email: string;
+            }>;
+            message: string;
+        }, { email: string }>({
+            query: ({ email }) => `/buyer-notifications/subscriptions?email=${encodeURIComponent(email)}`,
+            providesTags: ['NotificationSubscription'],
+        }),
+        
+        updateEmailNotificationSubscription: build.mutation<{
+            success: boolean;
+            data: any;
+            message: string;
+        }, {
+            id: number;
+            email: string;
+            game_id: number;
+            server_name?: string;
+            gender?: string;
+            max_price?: number;
+            characters?: Array<{
+                character: string;
+                min_copies: number;
+            }>;
+            weapons?: Array<{
+                weapon: string;
+                min_copies: number;
+            }>;
+            is_active?: boolean;
+        }>({
+            query: ({ id, ...data }) => ({
+                url: `/buyer-notifications/subscriptions/${id}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
+        
+        deleteEmailNotificationSubscription: build.mutation<{
+            success: boolean;
+            message: string;
+        }, { id: number; email: string }>({
+            query: ({ id, email }) => ({
+                url: `/buyer-notifications/subscriptions/${id}?email=${encodeURIComponent(email)}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
+        
+        unsubscribeFromNotifications: build.query<{
+            status: string;
+            message: string;
+            data: any;
+        }, { token: string }>({
+            query: ({ token }) => `/buyer-notifications/unsubscribe?token=${encodeURIComponent(token)}`,
+        }),
+        
+        unsubscribeFromSingleNotification: build.query<{
+            status: string;
+            message: string;
+            data: any;
+        }, { token: string }>({
+            query: ({ token }) => `/buyer-notifications/unsubscribe-single?token=${encodeURIComponent(token)}`,
+        }),
+        
+        getEmailSubscriptionsForManagement: build.query<{
+            success: boolean;
+            data: Array<{
+                id: number;
+                game_id: number;
+                game: { name: string };
+                server_name: string;
+                gender: string;
+                max_price: number;
+                characters: Array<{
+                    character: string;
+                    min_copies: number;
+                }>;
+                weapons: Array<{
+                    weapon: string;
+                    min_copies: number;
+                }>;
+                is_active: boolean;
+                created_at: string;
+                email: string;
+            }>;
+            message: string;
+        }, { email: string }>({
+            query: ({ email }) => `/buyer-notifications/email-subscriptions?email=${encodeURIComponent(email)}`,
+            providesTags: ['NotificationSubscription'],
+        }),
+        
+        unsubscribeAllForEmail: build.mutation<{
+            success: boolean;
+            message: string;
+        }, { email: string }>({
+            query: (data) => ({
+                url: '/buyer-notifications/unsubscribe-all',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: ['NotificationSubscription'],
+        }),
     }),
 });
 
@@ -424,6 +699,21 @@ export const {
     useGetSubRollerListQuery,
     useRemoveSubRollerMutation,
     useGetSubRollerAccessInfoQuery,
+    useRequestBuyerEmailAccessMutation,
+    useGetBuyerEmailsQuery,
+    useRegisterFCMTokenMutation,
+    useCreateNotificationSubscriptionMutation,
+    useGetNotificationSubscriptionsQuery,
+    useUpdateNotificationSubscriptionMutation,
+    useDeleteNotificationSubscriptionMutation,
+    useCreateEmailNotificationSubscriptionMutation,
+    useGetEmailNotificationSubscriptionsQuery,
+    useUpdateEmailNotificationSubscriptionMutation,
+    useDeleteEmailNotificationSubscriptionMutation,
+    useLazyUnsubscribeFromNotificationsQuery,
+    useLazyUnsubscribeFromSingleNotificationQuery,
+    useGetEmailSubscriptionsForManagementQuery,
+    useUnsubscribeAllForEmailMutation,
 } = api;
 
 // Add ApiResponse type
