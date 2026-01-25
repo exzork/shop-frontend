@@ -9,7 +9,7 @@ import { PayPalScriptProvider, PayPalButtons, ReactPayPalScriptOptions } from "@
 export default function PurchasePage(){
 
     const initialOptions : ReactPayPalScriptOptions = {
-        "clientId":"AcECQEIiO-87QDF3Up3AO2LYQ848LT5Dn6k_F8BCjlOukvIuNB892eOBAWukRfRHSkrJcIAJma8YXpwU",
+        "clientId": import.meta.env.VITE_PAYPAL_CLIENT_ID,
         "enable-funding": "venmo,card",
         "disable-funding": "paylater",
         "buyer-country": "US",
@@ -28,17 +28,16 @@ export default function PurchasePage(){
     const [createTransaction] = useCreateTransactionMutation();
     const [authorizeTransaction] = useAuthorizeTransactionMutation();
 
-    useEffect(() => {
-        if(accountError){
-            Swal.fire({
-                title: 'Error',
-                text: account?.error || 'Account not found',
-                icon: 'error',
-                confirmButtonText: 'Ok'
-            })
-        }
-    }, [accountError])
-
+    if(accountError){
+        return (
+            ///make fullpage error
+            <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col items-center justify-center">
+                <div className="text-xl md:text-3xl font-semibold text-red-500">
+                    {"Account not found or has been sold"}
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
