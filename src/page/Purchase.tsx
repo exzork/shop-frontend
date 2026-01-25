@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Transaction } from "../services/types"
 import { useParams } from "react-router-dom";
 import { useCreateTransactionMutation, useGetAccountQuery, useGetGameQuery, useAuthorizeTransactionMutation } from "../services/api";
@@ -23,10 +23,23 @@ export default function PurchasePage(){
 
     
     const [transaction, setTransaction] = useState<Transaction>({account_id: parseInt(useParams().accountId!), name: '', email: '', note: ''})
-    const {data: account} = useGetAccountQuery({gameId: parseInt(useParams().gameId!), accountId: parseInt(useParams().accountId!)})
+    const {data: account, isError : accountError} = useGetAccountQuery({gameId: parseInt(useParams().gameId!), accountId: parseInt(useParams().accountId!)})
     const {data: game} = useGetGameQuery({gameId: parseInt(useParams().gameId!)});
     const [createTransaction] = useCreateTransactionMutation();
     const [authorizeTransaction] = useAuthorizeTransactionMutation();
+
+    useEffect(() => {
+        if(accountError){
+            Swal.fire({
+                title: 'Error',
+                text: account?.error || 'Account not found',
+                icon: 'error',
+                confirmButtonText: 'Ok'
+            })
+        }
+    }, [accountError])
+
+
     return (
         <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
             <div className='bg-gray-900 dark:bg-gray-800 h-[10vh] flex'>
