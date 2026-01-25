@@ -9,6 +9,7 @@ import { Tooltip } from "react-tooltip";
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { Image } from '../components/Image';
+import { ImageSlider } from '../components/ImageSlider';
 import { CiEdit, CiTrash } from "react-icons/ci";
 
 const useTheme = () => {
@@ -51,7 +52,6 @@ export default function AddAccountPage(){
     const {data: incomeData} = useGetIncomeQuery();
     const [loadAccounts,{data: accounts}] = useLazyGetAccountsQuery();
     const {data: roller, isLoading: isRollerLoading} = useGetRollerQuery();
-    const [image, setImage] = useState<File | null>(null)
     const [loading, setLoading] = useState<boolean>(false)
     const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
     const [account, setAccount] = useState<Account>({
@@ -63,7 +63,7 @@ export default function AddAccountPage(){
         description: "",
         price: 0,
         roller: "",
-        images: "",
+        images: [],
         login: "Email",
         characters: [],
         weapons: [],
@@ -77,6 +77,7 @@ export default function AddAccountPage(){
     const [filterOpen, setFilterOpen] = useState(true);
     const [loadAccount,{}] = useLazyGetAccountQuery();
     const [deleteAccount,{}] = useDeleteAccountMutation();
+    const [imgurLink, setImgurLink] = useState("");
 
     useEffect(() => {
         console.log(account)
@@ -226,7 +227,7 @@ export default function AddAccountPage(){
                     code: "",
                     description: "",
                     price: 0,
-                    images: "",
+                    images: [],
                     login: "",
                     characters: [],
                     weapons: [],
@@ -715,48 +716,119 @@ export default function AddAccountPage(){
                             <input type="number" placeholder="Price" className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400" onChange={(e) => setAccount({...account!, price: parseInt(e.target.value)})} value={account.price}/>
                         </div>
                         <div className="px-4 py-2">
-                            <FileUploader multiple={false} handleChange={async(file:File) => {
-                                setImage(file)
-                            }}/>
-                            {image && <Image src={URL.createObjectURL(image)} alt="" className="h-40 aspect-video"/>}
+                            <label className="font-semibold text-gray-900 dark:text-gray-100 mb-1 block">Images</label>
+                            <div className="flex flex-col space-y-2">
+                                <div className="grid grid-cols-2 gap-2 mb-2">
+                                    {account.images.map((img, index) => (
+                                        <div key={index} className="relative group aspect-video bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">
+                                            <Image src={img} alt={`Account image ${index + 1}`} className="w-full h-full object-cover" />
+                                            <button 
+                                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => {
+                                                    setAccount({
+                                                        ...account,
+                                                        images: account.images.filter((_, i) => i !== index)
+                                                    });
+                                                }}
+                                            >
+                                                <CiTrash className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <FileUploader multiple={true} handleChange={async (files: FileList | File) => {
+                                    setLoading(true);
+                                    try {
+                                        const fileList = files instanceof FileList ? Array.from(files) : [files];
+                                        const uploadPromises = fileList.map(file => uploadImage(file));
+                                        const urls = await Promise.all(uploadPromises);
+                                        setAccount({
+                                            ...account,
+                                            images: [...account.images, ...urls]
+                                        });
+                                    } catch (error) {
+                                        Swal.fire({
+                                            title: 'Error',
+                                            text: 'Failed to upload one or more images.',
+                                            icon: 'error'
+                                        });
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }} />
+                                <div className="flex space-x-2 mt-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Add Imgur link..." 
+                                        className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                                        value={imgurLink}
+                                        onChange={(e) => setImgurLink(e.target.value)}
+                                    />
+                                    <button 
+                                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors"
+                                        onClick={() => {
+                                            if (imgurLink && imgurLink.includes('imgur.com')) {
+                                                setAccount({
+                                                    ...account,
+                                                    images: [...account.images, imgurLink]
+                                                });
+                                                setImgurLink("");
+                                            } else {
+                                                Swal.fire({
+                                                    title: 'Error',
+                                                    text: 'Please enter a valid Imgur link.',
+                                                    icon: 'error'
+                                                });
+                                            }
+                                        }}
+                                    >
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div className="px-4 py-2">
-                            <button className={`bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white w-full p-2 rounded transition-colors ${loading ? `hidden`:`block`}`} disabled={loading} onClick={async() => {
-                                if(!image && account.id === undefined){
+                            <button className={`bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white w-full p-2 rounded transition-colors ${loading ? `hidden` : `block`}`} disabled={loading} onClick={async () => {
+                                if (account.images.length === 0) {
                                     Swal.fire({
                                         title: 'Error',
-                                        text: 'Please upload an image.',
+                                        text: 'Please upload at least one image.',
                                         icon: 'error',
                                         confirmButtonText: 'Ok'
                                     })
                                     return
                                 }
                                 setLoading(true)
-                                let acc0 = {...account}
-                                if(image){
-                                    let url = await uploadImage(image)
-                                    acc0.images = url
+                                try {
+                                    await addAccount({ account: account }).unwrap();
+                                    setAccount({
+                                        game_id: account.game_id,
+                                        server_name: "",
+                                        level: 1,
+                                        banner_guarantee: false,
+                                        code: "",
+                                        description: "",
+                                        price: 0,
+                                        roller: roller?.code ?? "",
+                                        images: [],
+                                        login: "Email",
+                                        characters: [],
+                                        weapons: [],
+                                        email: "",
+                                        password: "",
+                                        gender: "F",
+                                        recovery_email: ""
+                                    })
+                                    loadAccounts({ gameId: gameId, query: { prefix: roller?.code } });
+                                } catch (error) {
+                                    Swal.fire({
+                                        title: 'Error',
+                                        text: 'Failed to add account.',
+                                        icon: 'error'
+                                    });
+                                } finally {
+                                    setLoading(false)
                                 }
-                                await addAccount({account: acc0}).unwrap();
-                                setLoading(false)
-                                setAccount({
-                                    game_id: account.game_id,
-                                    server_name: "",
-                                    level: 1,
-                                    banner_guarantee: false,
-                                    code: "",
-                                    description: "",
-                                    price: 0,
-                                    roller: roller?.code ?? "",
-                                    images: "",
-                                    login: "Email",
-                                    characters: [],
-                                    weapons: [],
-                                    email: "",
-                                    password: "",
-                                    gender: "F",
-                                    recovery_email: ""
-                                })
                             }}>{account.id ? "Edit" : "Add"} Account</button>
                         </div>
                         </>
@@ -776,18 +848,20 @@ export default function AddAccountPage(){
                                     <div key={index} className="transform transition-all duration-200 hover:scale-[1.02]">
                                         <div className='bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 p-4 flex flex-col h-full'>
                                             <div className="relative mb-3">
-                                                <div className="w-full aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-600 rounded-md overflow-hidden cursor-pointer" onClick={() => setImagePreview(item.images)}>
-                                                    <Image src={item.images} alt="" className="w-full h-full object-cover"/>
-                                                </div>
-                                                <div className="absolute top-2 left-2 bg-black/75 text-white px-2 py-1 rounded text-xs font-medium">
+                                                <ImageSlider 
+                                                    images={item.images} 
+                                                    onClick={(url) => setImagePreview(url)}
+                                                    className="w-full aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-600 rounded-md"
+                                                />
+                                                <div className="absolute top-2 left-2 bg-black/75 text-white px-2 py-1 rounded text-xs font-medium z-10">
                                                     {game?.servers.find(server => server.value === item.server_name)?.name}
                                                 </div>
                                                 {item.banner_guarantee && (
-                                                    <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
+                                                    <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium z-10">
                                                         Rate On
                                                     </div>
                                                 )}
-                                                <div className="absolute top-2 right-2 flex space-x-2">
+                                                <div className="absolute top-2 right-2 flex space-x-2 z-10">
                                                     <button onClick={() => handleEdit(item.id!)} className="bg-blue-500 text-white p-1 rounded hover:bg-blue-600 transition-colors">
                                                         <CiEdit className="w-4 h-4" />
                                                     </button>

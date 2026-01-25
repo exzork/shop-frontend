@@ -6,6 +6,7 @@ interface ImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
 }
 
 const getProxyUrl = (url: string) => {
+  if (!url) return '';
   // If the URL is already a blob URL or data URL, return as is
   if (url.startsWith('blob:') || url.startsWith('data:')) {
     return url;
@@ -16,6 +17,11 @@ const getProxyUrl = (url: string) => {
     return url;
   }
 
+  // Imgur check
+  if (url.includes('imgur.com')) {
+    return url;
+  }
+
   // For external URLs, use our caching endpoint
   return `/api/image/cache?url=${encodeURIComponent(url)}`;
 };
@@ -23,14 +29,13 @@ const getProxyUrl = (url: string) => {
 export const Image: React.FC<ImageProps> = ({ src, alt, ...props }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<boolean>(false);
-
   // Get the proxy URL for external images
   const displaySrc = getProxyUrl(src);
 
   return (
     <>
       {isLoading && (
-        <div className="animate-pulse bg-gray-200 dark:bg-gray-700" style={{ width: props.width || '100%', height: props.height || '100%' }} />
+        <div className={`animate-pulse bg-gray-200 dark:bg-gray-700 ${props.className}`} style={{ width: props.width || '100%', height: props.height || '100%', ...props.style }} />
       )}
       <img
         src={error ? src : displaySrc}

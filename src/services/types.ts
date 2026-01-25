@@ -18,7 +18,7 @@ export interface Account {
     description: string;
     price: number;
     gender: string;
-    images: string;
+    images: string[];
     login: string;
     characters: Character[];
     weapons: Weapon[];
@@ -77,6 +77,40 @@ export interface Transaction {
     name: string;
     email: string;
     note: string;
+}
+
+export interface CreateTransactionResponse {
+    order: {
+        id: string;
+        status: string;
+        links: {
+            href: string;
+            rel: string;
+            method: string;
+        }[];
+    };
+    transaction: {
+        id: number;
+        account_id: number;
+        name: string;
+        email: string;
+        status: string;
+        price: number;
+        note: string;
+        order_id: string;
+        created_at: string;
+    };
+}
+
+export interface AuthorizeTransactionRequest {
+    order_id: string;
+}
+
+export interface AuthorizeTransactionResponse {
+    status: string;
+    purchase_units?: any[];
+    details?: any[];
+    debug_id?: string;
 }
 
 export interface Roller {

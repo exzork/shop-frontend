@@ -16,6 +16,7 @@ export default function Login() {
     e.preventDefault();
     try {
       const result = await login({ code, password }).unwrap();
+      console.log('Login result:', result);
       dispatch(setToken(result.token));
       navigate('/');
     } catch (err) {

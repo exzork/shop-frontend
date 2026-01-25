@@ -6,6 +6,7 @@ import { Tooltip } from 'react-tooltip';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import { Image } from '../components/Image';
+import { ImageSlider } from '../components/ImageSlider';
 import NoAccountsNotification from '../components/NoAccountsNotification';
 
 const useTheme = () => {
@@ -538,14 +539,16 @@ export default function AccountPage(){
                                     <div key={index} className="transform transition-all duration-200 hover:scale-[1.02]">
                                         <div className='bg-white dark:bg-gray-700 rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-200 p-4 flex flex-col h-full'>
                                             <div className="relative mb-3">
-                                                <div className="w-full aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-600 rounded-md overflow-hidden cursor-pointer" onClick={() => setImagePreview(item.images)}>
-                                                    <Image src={item.images} alt="" className="w-full h-full object-cover"/>
-                                                </div>
-                                                <div className="absolute top-2 left-2 bg-black/75 text-white px-2 py-1 rounded text-xs font-medium">
+                                                <ImageSlider 
+                                                    images={item.images} 
+                                                    onClick={(url) => setImagePreview(url)}
+                                                    className="w-full aspect-w-16 aspect-h-9 bg-gray-200 dark:bg-gray-600 rounded-md"
+                                                />
+                                                <div className="absolute top-2 left-2 bg-black/75 text-white px-2 py-1 rounded text-xs font-medium z-10">
                                                     {game?.servers.find(server => server.value === item.server_name)?.name}
                                                 </div>
                                                 {item.banner_guarantee && (
-                                                    <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium">
+                                                    <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-medium z-10">
                                                         Rate On
                                                     </div>
                                                 )}

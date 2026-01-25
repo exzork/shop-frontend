@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats, BuyerEmailAccessRequest, BuyerEmailAccessResponse } from "./types";
+import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats, BuyerEmailAccessRequest, BuyerEmailAccessResponse, CreateTransactionResponse, AuthorizeTransactionRequest, AuthorizeTransactionResponse } from "./types";
 import axios, { AxiosResponse } from 'axios';
 import { RootState } from '../store';
 
@@ -14,7 +14,7 @@ const PROTECTED_ENDPOINTS = [
 
 // Custom base query that checks authentication for protected endpoints
 const baseQuery = fetchBaseQuery({ 
-    baseUrl: "https://shop.exzork.me/api",
+    baseUrl: import.meta.env.VITE_API_URL,
     prepareHeaders: (headers, { getState, endpoint }) => {
         // Handle sub-roller token for access endpoints
         if (endpoint === 'getSubRollerEmails' || endpoint === 'getSubRollerEmailById') {
@@ -73,6 +73,11 @@ export const api = createApi({
                 method: 'POST',
                 body: credentials,
             }),
+            transformResponse: (response: Response) => {
+                if(response.status === "success"){
+                    return response.data
+                }
+            },
         }),
         changePassword: build.mutation<void, {current_password: string, new_password: string}>({
             query: (passwords) => ({
@@ -136,7 +141,7 @@ export const api = createApi({
             },
             providesTags: ["Game"],
         }),
-        createTransaction: build.mutation<Transaction, Transaction>({
+        createTransaction: build.mutation<CreateTransactionResponse, Transaction>({
             query: (params) => ({
                 url: `transaction`,
                 method: "POST",
@@ -147,6 +152,18 @@ export const api = createApi({
                     return response.data
                 }
             },
+        }),
+        authorizeTransaction: build.mutation<AuthorizeTransactionResponse, AuthorizeTransactionRequest>({
+            query: (params) => ({
+                url: `transaction/authorize`,
+                method: "POST",
+                body: params
+            }),
+            transformResponse: (response: Response) => {
+                 if(response.status === "success"){
+                    return response.data
+                }
+             },
         }),
         getRoller: build.query<Roller, void>({
             query: () => `roller`,
@@ -714,6 +731,7 @@ export const {
     useLazyUnsubscribeFromSingleNotificationQuery,
     useGetEmailSubscriptionsForManagementQuery,
     useUnsubscribeAllForEmailMutation,
+    useAuthorizeTransactionMutation,
 } = api;
 
 // Add ApiResponse type
