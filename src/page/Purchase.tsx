@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Transaction } from "../services/types"
 import { useParams } from "react-router-dom";
 import { useCreateTransactionMutation, useGetAccountQuery, useGetGameQuery, useAuthorizeTransactionMutation } from "../services/api";
