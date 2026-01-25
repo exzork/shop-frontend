@@ -9,7 +9,7 @@ import { PayPalScriptProvider, PayPalButtons, ReactPayPalScriptOptions } from "@
 export default function PurchasePage(){
 
     const initialOptions : ReactPayPalScriptOptions = {
-        "clientId":"AdjBJg60oSySZNz3WT_Tvo4iv6uqGKypVyaBYDmc5rTsIUr0y22CO5_hJlXkV_VchuhWGb0kkPOkU2wW",
+        "clientId":"AcECQEIiO-87QDF3Up3AO2LYQ848LT5Dn6k_F8BCjlOukvIuNB892eOBAWukRfRHSkrJcIAJma8YXpwU",
         "enable-funding": "venmo,card",
         "disable-funding": "paylater",
         "buyer-country": "US",
