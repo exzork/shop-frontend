@@ -17,7 +17,7 @@ export default function PurchasePage(){
         "data-page-type": "product-details",
         components: "buttons",
         "data-sdk-integration-source": "developer-studio",
-        environment: "sandbox",
+        environment: "production",
         intent: "authorize",
     };
 
@@ -112,7 +112,7 @@ export default function PurchasePage(){
                                             } else {
                                                 Swal.fire({
                                                     title: 'Success',
-                                                    text: `Payment authorized. Your order is being processed and account details will be sent to your email once delivery is complete.`,
+                                                    text: `Payment authorized. Your order is being processed and account details will be sent to your email.`,
                                                     icon: 'success',
                                                     confirmButtonText: 'Ok'
                                                 })
