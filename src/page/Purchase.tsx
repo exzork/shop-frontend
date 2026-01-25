@@ -12,7 +12,6 @@ export default function PurchasePage(){
         "clientId": import.meta.env.VITE_PAYPAL_CLIENT_ID,
         "enable-funding": "venmo,card",
         "disable-funding": "paylater",
-        "buyer-country": "US",
         currency: "USD",
         "data-page-type": "product-details",
         components: "buttons",
