@@ -144,7 +144,7 @@ function App() {
                     </PrivateRoute>
                   }
                 />
-                <Route
+                {/* <Route
                   path="/email"
                   element={
                     <PrivateRoute>
@@ -159,7 +159,7 @@ function App() {
                       <SubRollerEmail />
                     </PrivateRoute>
                   }
-                />
+                /> */}
                 <Route path="/email-viewer" element={<EmailViewer />} />
                 <Route path="/email-viewer/:emailId" element={<EmailViewer />} />
                 <Route path="/buyer-emails" element={<BuyerEmailAccess />} />
