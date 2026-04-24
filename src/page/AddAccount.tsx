@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { uploadImage, useAddAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery, useGetIncomeQuery, useDeleteAccountMutation, useLazyGetAccountQuery } from "../services/api";
+import { uploadImage, useAddAccountMutation, useGetGameQuery, useGetRollerQuery, useLazyGetAccountsQuery, useGetIncomeQuery, useDeleteAccountMutation, useLazyGetAccountQuery, useGetWhitelistedEmailsQuery } from "../services/api";
 import { Account } from "../services/types";
 import { useParams, Navigate } from "react-router-dom";
 import Select from 'react-select';
@@ -78,6 +78,8 @@ export default function AddAccountPage(){
     const [loadAccount,{}] = useLazyGetAccountQuery();
     const [deleteAccount,{}] = useDeleteAccountMutation();
     const [imgurLink, setImgurLink] = useState("");
+    const [selectedDomain, setSelectedDomain] = useState<string>("");
+    const { data: whitelistedEmails } = useGetWhitelistedEmailsQuery();
 
     useEffect(() => {
         console.log(account)
@@ -91,22 +93,50 @@ export default function AddAccountPage(){
 
     useEffect(() => {
         if (roller?.code) {
+            const defaultDomain = whitelistedEmails?.[0]?.domain || 'exzork.me';
+            setSelectedDomain(defaultDomain);
             setAccount(prev => ({
                 ...prev,
                 roller: roller.code,
-                email: `${roller.code.toLowerCase()}.@exzork.me`
+                email: `@${defaultDomain}`
             }));
         }
-    }, [roller?.code]);
+    }, [roller?.code, whitelistedEmails]);
 
     const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!roller?.code) return;
-        const prefix = roller.code.toLowerCase() + '.';
-        const value = e.target.value.replace('@exzork.me', '');
-        setAccount(prev => ({
-            ...prev,
-            email: `${prefix}${value}@exzork.me`
-        }));
+        const value = e.target.value;
+        // Check if the pasted/typed value contains a whitelisted domain
+        const whitelistedDomains = whitelistedEmails?.map(w => w.domain) || [];
+        const foundDomain = whitelistedDomains.find(d => {
+            const idx = value.lastIndexOf(`@${d}`);
+            return idx !== -1;
+        });
+
+        if (foundDomain) {
+            const username = value.replace(`@${foundDomain}`, '');
+            setSelectedDomain(foundDomain);
+            setAccount(prev => ({
+                ...prev,
+                email: `${username}@${foundDomain}`
+            }));
+        } else {
+            const username = value.replace(/@[\w.-]+/, '');
+            setAccount(prev => ({
+                ...prev,
+                email: `${username}@${selectedDomain}`
+            }));
+        }
+    };
+
+    const handleDomainChange = (domain: string) => {
+        setSelectedDomain(domain);
+        setAccount(prev => {
+            const username = prev.email.replace(/@[\w.-]+/, '');
+            return {
+                ...prev,
+                email: `${username}@${domain}`
+            };
+        });
     };
 
     const handleCharacterClick = (character: string) => {
@@ -673,27 +703,34 @@ export default function AddAccountPage(){
                         <div className="px-4 py-2">
                             <div className="relative">
                                 <div className="flex">
-                                    <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 sm:text-sm">
-                                        {roller?.code?.toLowerCase() || ''}.
-                                    </span>
                                     <input 
                                         type="text" 
                                         placeholder="email" 
-                                        className="flex-1 p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-gray-500 focus:border-gray-500" 
+                                        className="flex-1 p-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-l-md focus:ring-gray-500 focus:border-gray-500" 
                                         value={(() => {
-                                            if (!roller?.code || !account.email) return '';
-                                            const prefix = roller.code.toLowerCase() + '.';
-                                            const email = account.email.replace('@exzork.me', '');
-                                            return email.startsWith(prefix) 
-                                                ? email.slice(prefix.length) 
-                                                : email;
+                                            if (!account.email) return '';
+                                            return account.email.replace(/@[\w.-]+/, '');
                                         })()}
                                         onChange={handleEmailChange}
                                     />
-                                    <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 sm:text-sm">
-                                        @exzork.me
-                                    </span>
+                                    <select
+                                        className="border border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-r-md px-2 text-sm focus:ring-gray-500 focus:border-gray-500"
+                                        value={selectedDomain}
+                                        onChange={(e) => handleDomainChange(e.target.value)}
+                                    >
+                                        {whitelistedEmails?.map((wl) => (
+                                            <option key={wl.id} value={wl.domain}>
+                                                @{wl.domain} {wl.is_managed ? '(Managed)' : ''}
+                                            </option>
+                                        ))}
+                                        {!whitelistedEmails?.length && (
+                                            <option value="exzork.me">@exzork.me</option>
+                                        )}
+                                    </select>
                                 </div>
+                                {whitelistedEmails?.find(w => w.domain === selectedDomain)?.is_managed && (
+                                    <p className="mt-1 text-xs text-blue-500 dark:text-blue-400">✓ Managed domain — email will be transferred to ZorkMail</p>
+                                )}
                             </div>
                         </div>
                         )}

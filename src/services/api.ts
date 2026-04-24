@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats, BuyerEmailAccessRequest, BuyerEmailAccessResponse, CreateTransactionResponse, AuthorizeTransactionRequest, AuthorizeTransactionResponse } from "./types";
+import { Account, ApiResult, Game, Response, Roller, Transaction, SalesStats, BuyerEmailAccessRequest, BuyerEmailAccessResponse, CreateTransactionResponse, AuthorizeTransactionRequest, AuthorizeTransactionResponse, WhitelistedEmail } from "./types";
 import axios, { AxiosResponse } from 'axios';
 import { RootState } from '../store';
 
@@ -9,7 +9,8 @@ const PROTECTED_ENDPOINTS = [
     'email',
     'email/sub-roller/token',
     'email/sub-roller/list',
-    'email/sub-roller'  // for DELETE operation
+    'email/sub-roller',  // for DELETE operation
+    'whitelisted-emails'
 ];
 
 // Custom base query that checks authentication for protected endpoints
@@ -65,7 +66,7 @@ const customBaseQuery = async (args: any, api: any, extraOptions: any) => {
 export const api = createApi({
     reducerPath: "api",
     baseQuery: customBaseQuery,
-    tagTypes: ["Account","Game","Email","SubRoller","NotificationSubscription"],
+    tagTypes: ["Account","Game","Email","SubRoller","NotificationSubscription","WhitelistedEmail"],
     endpoints: (build) => ({
         login: build.mutation<{token: string}, {code: string, password: string}>({
             query: (credentials) => ({
@@ -650,6 +651,17 @@ export const api = createApi({
             }),
             invalidatesTags: ['NotificationSubscription'],
         }),
+
+        // Whitelisted Email Endpoints (admin only)
+        getWhitelistedEmails: build.query<WhitelistedEmail[], void>({
+            query: () => 'whitelisted-emails',
+            transformResponse: (response: Response) => {
+                if (response.status === "success") {
+                    return response.data;
+                }
+            },
+            providesTags: ['WhitelistedEmail'],
+        }),
     }),
 });
 
@@ -732,6 +744,7 @@ export const {
     useGetEmailSubscriptionsForManagementQuery,
     useUnsubscribeAllForEmailMutation,
     useAuthorizeTransactionMutation,
+    useGetWhitelistedEmailsQuery,
 } = api;
 
 // Add ApiResponse type

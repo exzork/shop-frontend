@@ -3,8 +3,6 @@ import Account from './page/Account';
 import AddAccount from './page/AddAccount';
 import Login from './pages/Login';
 import Home from './page/Home';
-import Email from './page/Email';
-import SubRollerEmail from './page/SubRollerEmail';
 import BuyerEmailAccess from './pages/BuyerEmailAccess';
 import UnsubscribePage from './pages/UnsubscribePage';
 import NotificationsPage from './pages/NotificationsPage';

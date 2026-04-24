@@ -140,6 +140,14 @@ export interface BuyerEmailAccessRequest {
     email: string;
 }
 
+export interface WhitelistedEmail {
+    id: number;
+    domain: string;
+    is_managed: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface BuyerEmailAccessResponse {
     buyer_email: string;
     accounts: {
