@@ -723,9 +723,6 @@ export default function AddAccountPage(){
                                                 @{wl.domain}
                                             </option>
                                         ))}
-                                        {!whitelistedEmails?.length && (
-                                            <option value="exzork.me">@exzork.me</option>
-                                        )}
                                     </select>
                                 </div>
                                 {whitelistedEmails?.find(w => w.domain === selectedDomain)?.is_managed && (
