@@ -720,7 +720,7 @@ export default function AddAccountPage(){
                                     >
                                         {whitelistedEmails?.map((wl) => (
                                             <option key={wl.id} value={wl.domain}>
-                                                @{wl.domain} {wl.is_managed ? '(Managed)' : ''}
+                                                @{wl.domain}
                                             </option>
                                         ))}
                                         {!whitelistedEmails?.length && (
