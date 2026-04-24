@@ -27,19 +27,57 @@ export default function PurchasePage(){
     const [createTransaction] = useCreateTransactionMutation();
     const [authorizeTransaction] = useAuthorizeTransactionMutation();
 
-    // Payment state
-    const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
-    const [pendingTransactionId, setPendingTransactionId] = useState<number | null>(null);
-    const [timerSeconds, setTimerSeconds] = useState(300); // 5 minutes
-    const [timerActive, setTimerActive] = useState(false);
+    const accountId = parseInt(useParams().accountId!);
+
+    // Payment state - initialize from localStorage if available
+    const getStoredPayment = () => {
+        try {
+            const stored = localStorage.getItem(`payment_${accountId}`);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                const elapsed = Math.floor((Date.now() - parsed.startedAt) / 1000);
+                const remaining = 300 - elapsed;
+                if (remaining > 0) {
+                    return {
+                        orderId: parsed.orderId as string,
+                        transactionId: parsed.transactionId as number,
+                        remaining: remaining,
+                    };
+                } else {
+                    // Expired, clean up
+                    localStorage.removeItem(`payment_${accountId}`);
+                }
+            }
+        } catch {}
+        return null;
+    };
+
+    const storedPayment = getStoredPayment();
+    const [pendingOrderId, setPendingOrderId] = useState<string | null>(storedPayment?.orderId ?? null);
+    const [pendingTransactionId, setPendingTransactionId] = useState<number | null>(storedPayment?.transactionId ?? null);
+    const [timerSeconds, setTimerSeconds] = useState(storedPayment?.remaining ?? 300);
+    const [timerActive, setTimerActive] = useState(!!storedPayment?.orderId);
     const [paymentCancelled, setPaymentCancelled] = useState(false);
     const [paymentCompleted, setPaymentCompleted] = useState(false);
+
+    const savePaymentToStorage = (orderId: string, transactionId: number) => {
+        localStorage.setItem(`payment_${accountId}`, JSON.stringify({
+            orderId,
+            transactionId,
+            startedAt: Date.now(),
+        }));
+    };
+
+    const clearPaymentStorage = () => {
+        localStorage.removeItem(`payment_${accountId}`);
+    };
 
     // Timer countdown
     useEffect(() => {
         if (!timerActive || timerSeconds <= 0) {
             if (timerSeconds <= 0 && timerActive) {
                 setTimerActive(false);
+                clearPaymentStorage();
             }
             return;
         }
@@ -47,6 +85,7 @@ export default function PurchasePage(){
             setTimerSeconds(prev => {
                 if (prev <= 1) {
                     setTimerActive(false);
+                    clearPaymentStorage();
                     return 0;
                 }
                 return prev - 1;
@@ -69,6 +108,7 @@ export default function PurchasePage(){
             const result = await createTransaction(transaction).unwrap();
             setPendingOrderId(result.order.id);
             setPendingTransactionId(result.transaction.id);
+            savePaymentToStorage(result.order.id, result.transaction.id);
             setTimerSeconds(300);
             setTimerActive(true);
             setPaymentCancelled(false);
@@ -96,6 +136,7 @@ export default function PurchasePage(){
             } else {
                 setPaymentCompleted(true);
                 setTimerActive(false);
+                clearPaymentStorage();
                 Swal.fire({
                     title: 'Success',
                     text: `Payment authorized. Your order is being processed and account details will be sent to your email.`,
