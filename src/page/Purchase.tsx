@@ -273,7 +273,7 @@ export default function PurchasePage(){
 
                         {/* PayPal Buttons */}
                         {!paymentCompleted && timerSeconds > 0 && !paymentCancelled && (
-                            <div className="w-full max-w-md">
+                            <div className="w-full max-w-md bg-white">
                                 <PayPalScriptProvider options={initialOptions}>
                                     <PayPalButtons
                                         style={{
